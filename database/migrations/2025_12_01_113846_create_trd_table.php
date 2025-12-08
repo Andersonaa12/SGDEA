@@ -12,12 +12,17 @@ return new class extends Migration
     public function up(): void
     {
        Schema::create('trds', function (Blueprint $table) {
-            $table->id();
+        $table->id();
             $table->string('version')->unique();
             $table->date('approval_date');
+            $table->date('valid_from')->nullable();
+            $table->date('valid_to')->nullable();
+            $table->string('approval_file')->nullable();
             $table->boolean('active')->default(true);
             $table->timestamps();
             $table->softDeletes();
+            $table->foreignId('created_by')->nullable()->constrained('users');
+            $table->foreignId('updated_by')->nullable()->constrained('users');
         });
     }
 

@@ -11,14 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('workflow_steps', function (Blueprint $table) {
+       Schema::create('workflow_steps', function (Blueprint $table) {
             $table->id();
             $table->foreignId('workflow_id')->constrained()->onDelete('cascade');
             $table->integer('order');
             $table->enum('action', ['review', 'approve', 'respond']);
-            $table->foreignId('role_id')->constrained('roles'); // De Spatie
+            $table->integer('estimated_days')->default(0);
+            $table->foreignId('role_id')->constrained('roles');
             $table->timestamps();
             $table->softDeletes();
+            $table->foreignId('created_by')->nullable()->constrained('users');
+            $table->foreignId('updated_by')->nullable()->constrained('users');
         });
     }
 
