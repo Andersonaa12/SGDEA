@@ -79,7 +79,7 @@
                                             <span class="px-3 py-1 rounded-full text-xs font-bold
                                                 {{ $exp->phase == 'gestión' ? 'bg-yellow-100 text-yellow-800' : 
                                                    ($exp->phase == 'central' ? 'bg-indigo-100 text-indigo-800' : 'bg-purple-100 text-purple-800') }}">
-                                                {{ ucfirst($exp->phase) }}
+                                                {{ ucfirst($exp->phase->name) }}
                                             </span>
                                         </td>
                                         <td class="px-6 py-4">

@@ -20,8 +20,9 @@ class Expediente extends Model implements AuditableContract
 
     protected $fillable = [
         'number', 'subject', 'detail', 'parent_id', 'structure_id', 'section_id',
-        'subsection_id', 'serie_id', 'subserie_id', 'phase', 'physical', 'opening_date',
-        'closing_date', 'version', 'status', 'metadata', 'created_by', 'updated_by'
+        'subsection_id', 'serie_id', 'subserie_id', 'opening_date',
+        'closing_date', 'version', 'status', 'metadata', 'created_by', 'updated_by','support_type_id',
+        'phase_id',
     ];
 
     // Relaciones
@@ -80,6 +81,16 @@ class Expediente extends Model implements AuditableContract
         return $this->hasMany(\App\Models\Transfer\Transfer::class, 'expediente_id');
     }
 
+    public function supportType()
+    {
+        return $this->belongsTo(SupportType::class, 'support_type_id');
+    }
+
+    public function phase()
+    {
+        return $this->belongsTo(Phase::class, 'phase_id');
+    }
+
     public function creator()
     {
         return $this->belongsTo(\App\Models\User::class, 'created_by');
@@ -88,5 +99,73 @@ class Expediente extends Model implements AuditableContract
     public function updater()
     {
         return $this->belongsTo(\App\Models\User::class, 'updated_by');
+    }
+
+    public function currentLocation()
+    {
+        return $this->hasOne(ExpedienteLocation::class)->latestOfMany();
+    }
+
+    public function locations()
+    {
+        return $this->hasMany(ExpedienteLocation::class)->orderByDesc('created_at');
+    }
+
+    public function latestLocation()
+    {
+        return $this->hasOne(ExpedienteLocation::class)->orderByDesc('created_at');
+    }
+
+    // ===================================================================
+    // Scopes útiles
+    // ===================================================================
+
+    public function scopeOpen($query)
+    {
+        return $query->where('status', 'open');
+    }
+
+    public function scopeClosed($query)
+    {
+        return $query->where('status', 'closed');
+    }
+
+    public function scopeArchived($query)
+    {
+        return $query->where('status', 'archived');
+    }
+
+    public function scopeActivePhase($query)
+    {
+        return $query->whereHas('phase', fn($q) => $q->where('active', true));
+    }
+
+    // ===================================================================
+    // Accessors útiles
+    // ===================================================================
+
+    public function getIsClosedAttribute(): bool
+    {
+        return $this->status === 'closed' || $this->status === 'archived';
+    }
+
+    public function getIsPhysicalAttribute(): bool
+    {
+        return $this->supportType?->is_physical ?? false;
+    }
+
+    public function getIsElectronicAttribute(): bool
+    {
+        return $this->supportType?->is_electronic ?? false;
+    }
+
+    public function getIsHybridAttribute(): bool
+    {
+        return $this->supportType?->is_physical && $this->supportType?->is_electronic;
+    }
+
+    public function getFullNumberAttribute(): string
+    {
+        return $this->number;
     }
 }

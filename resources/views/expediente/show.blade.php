@@ -7,9 +7,7 @@
                 </svg>
             </div>
             <div class="flex flex-col">
-                <h2 class="font-bold text-2xl text-gray-800">
-                    Expediente: {{ $expediente->number }}
-                </h2>
+                <h2 class="font-bold text-2xl text-gray-800">Expediente: {{ $expediente->number }}</h2>
                 <nav class="flex text-sm text-gray-600 mt-1">
                     <a href="{{ route('expedientes.index') }}" class="hover:text-indigo-600">Expedientes</a>
                     <span class="mx-2">/</span>
@@ -22,57 +20,104 @@
     <div class="py-12">
         <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white shadow-2xl rounded-xl overflow-hidden">
-                <div class="bg-gradient-to-r from-indigo-600 to-pink-700 p-8 text-white">
-                    <div class="flex items-center justify-between">
+                <div class="bg-gradient-to-r from-indigo-600 to-purple-700 p-8 text-white">
+                    <div class="flex items-center justify-between mb-6">
                         <div>
-                            <h1 class="text-4xl font-bold">{{ $expediente->number }}</h1>
+                            <h1 class="text-5xl font-bold">{{ $expediente->number }}</h1>
                             <p class="text-2xl mt-2 opacity-95">{{ $expediente->subject }}</p>
-                            <p class="mt-3 text-indigo-100">
-                                Apertura: {{ $expediente->opening_date->format('d/m/Y') }} 
-                                @if($expediente->closing_date) • Cierre: {{ $expediente->closing_date->format('d/m/Y') }} @endif
-                            </p>
                         </div>
                         <div class="text-right">
-                            <span class="inline-flex items-center px-6 py-3 rounded-full text-lg font-bold
-                                {{ $expediente->status == 'abierto' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                            <span class="inline-block px-4 py-2 rounded-full text-sm font-bold
+                                @if($expediente->status === 'open') bg-green-100 text-green-800
+                                @elseif($expediente->status === 'closed') bg-yellow-100 text-yellow-800
+                                @else bg-gray-100 text-gray-800 @endif">
                                 {{ ucfirst($expediente->status) }}
                             </span>
-                            <p class="mt-3 text-indigo-100 text-lg font-medium">{{ ucfirst($expediente->phase) }}</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mt-8">
+                        <div class="bg-white/10 backdrop-blur p-5 rounded-xl">
+                            <p class="text-indigo-200 text-sm">Fase</p>
+                            <p class="text-2xl font-bold">{{ ucfirst($expediente->phase?->name ?? '—') }}</p>
+                        </div>
+                        <div class="bg-white/10 backdrop-blur p-5 rounded-xl">
+                            <p class="text-indigo-200 text-sm">Soporte</p>
+                            <p class="text-2xl font-bold">{{ $expediente->supportType?->short_description ?? '—' }}</p>
+                        </div>
+                        <div class="bg-white/10 backdrop-blur p-5 rounded-xl">
+                            <p class="text-indigo-200 text-sm">Documentos</p>
+                            <p class="text-4xl font-bold">{{ $expediente->documents->count() }}</p>
+                        </div>
+                        <div class="bg-white/10 backdrop-blur p-5 rounded-xl">
+                            <p class="text-indigo-200 text-sm">Versión</p>
+                            <p class="text-4xl font-bold">{{ $expediente->version }}</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 text-sm">
+                        <div>
+                            <p class="text-indigo-200">Apertura: <span class="font-bold text-white">{{ $expediente->opening_date ?? '—' }}</span></p>
+                            @if($expediente->closing_date)
+                                <p class="text-indigo-200 mt-2">Cierre: <span class="font-bold text-white">{{ $expediente->closing_date }}</span></p>
+                            @endif
+                        </div>
+                        <div class="text-right">
+                            <p class="text-indigo-200">Creado por: <span class="font-bold text-white">{{ $expediente->creator?->name ?? 'Sistema' }}</span></p>
+                            <p class="text-indigo-200 mt-1">Actualizado: <span class="font-bold text-white">{{ $expediente->updated_at }}</span></p>
                         </div>
                     </div>
                 </div>
 
-                <div class="p-8 space-y-10">
-                    <!-- Información principal -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="p-8 space-y-8">
+                    @if($expediente->detail)
+                        <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                            <h3 class="font-bold text-gray-800 mb-3">Detalle del Expediente</h3>
+                            <p class="text-gray-700 leading-relaxed">{{ $expediente->detail }}</p>
+                        </div>
+                    @endif
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="bg-indigo-50 p-6 rounded-xl border border-indigo-200">
-                            <p class="text-sm font-medium text-indigo-700">Serie Documental</p>
+                            <p class="text-sm font-medium text-indigo-700">Serie / Subserie</p>
                             <p class="text-xl font-bold text-gray-800 mt-2">
-                                {{ $expediente->serie->code ?? '—' }} - {{ $expediente->serie->name ?? 'Sin serie' }}
+                                {{ $expediente->serie?->code ?? '—' }} @if($expediente->subserie) / {{ $expediente->subserie->code }} @endif
                             </p>
                         </div>
-                        <div class="bg-indigo-50 p-6 rounded-xl border border-indigo-200">
-                            <p class="text-sm font-medium text-indigo-700">Sección / Subsección</p>
+                        <div class="bg-purple-50 p-6 rounded-xl border border-purple-200">
+                            <p class="text-sm font-medium text-purple-700">Sección / Subsección</p>
                             <p class="text-xl font-bold text-gray-800 mt-2">
                                 {{ $expediente->section?->name ?? '—' }} @if($expediente->subsection) / {{ $expediente->subsection->name }} @endif
                             </p>
                         </div>
-                        <div class="bg-indigo-50 p-6 rounded-xl border border-indigo-200">
-                            <p class="text-sm font-medium text-indigo-700">Documentos</p>
-                            <p class="text-4xl font-bold text-indigo-700 mt-2">{{ $expediente->documents->count() }}</p>
+                        <div class="bg-green-50 p-6 rounded-xl border border-green-200">
+                            <p class="text-sm font-medium text-green-700">Estructura Organizacional</p>
+                            <p class="text-xl font-bold text-gray-800 mt-2">
+                                {{ $expediente->structure?->version ?? '—' }}
+                            </p>
                         </div>
                     </div>
 
-                    @if($expediente->detail)
-                        <div class="bg-gray-50 p-6 rounded-xl">
-                            <p class="font-semibold text-gray-700">Detalle del Expediente</p>
-                            <p class="mt-3 text-gray-800 leading-relaxed">{{ $expediente->detail }}</p>
-                        </div>
+                    @if($expediente->supportType?->is_physical)
+                        @if($expediente->currentLocation)
+                            <div class="bg-amber-50 p-6 rounded-xl border border-amber-300">
+                                <h4 class="font-bold text-amber-900 mb-3">Ubicación Física Actual</h4>
+                                <p class="text-gray-800">
+                                    {{ $expediente->currentLocation->full_location }}
+                                </p>
+                                <p class="text-sm text-gray-600 mt-2">
+                                    Asignada el {{ $expediente->currentLocation->created_at->format('d/m/Y') }}
+                                    @if($expediente->currentLocation->creator)
+                                        por {{ $expediente->currentLocation->creator->name }}
+                                    @endif
+                                </p>
+                            </div>
+                        @else
+                            <p class="text-gray-500 italic">Sin ubicación física asignada</p>
+                        @endif
                     @endif
 
-                    <!-- Documentos, Historial, Préstamos, etc. puedes añadirlos aquí con el mismo estilo premium -->
-
-                    <div class="flex gap-4 mt-12 pt-8 border-t">
+                    <div class="flex gap-4 pt-8 border-t">
                         <a href="{{ route('expedientes.edit', $expediente) }}"
                            class="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-lg transition transform hover:scale-105">
                             Editar Expediente

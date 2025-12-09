@@ -22,8 +22,8 @@ return new class extends Migration
             $table->foreignId('subsection_id')->nullable()->constrained();
             $table->foreignId('serie_id')->constrained();
             $table->foreignId('subserie_id')->constrained();
-            $table->enum('phase', ['management', 'central', 'historical'])->default('management');
-            $table->boolean('physical')->default(false);
+            $table->foreignId('support_type_id')->constrained('support_types')->comment('FIS = físico, ELE = electrónico, AMB = ambos');
+            $table->foreignId('phase_id')->constrained('phases')->default(1)->comment('Fase actual en el ciclo vital del expediente');
             $table->date('opening_date')->useCurrent();
             $table->date('closing_date')->nullable();
             $table->integer('version')->default(1);
