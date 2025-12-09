@@ -15,7 +15,7 @@ class Serie extends Model implements AuditableContract
     protected $table = 'series';
 
     protected $fillable = [
-        'trd_id', 'code', 'name', 'description', 'retention_management_years',
+        'id', 'trd_id', 'code', 'name', 'description', 'retention_management_years',
         'retention_central_years', 'final_disposition', 'disposition_procedure',
         'created_by', 'updated_by'
     ];
@@ -44,5 +44,17 @@ class Serie extends Model implements AuditableContract
     public function updater()
     {
         return $this->belongsTo(\App\Models\User::class, 'updated_by');
+    }
+
+    // Funciones
+    public static function generateCode(Trd $trd)
+    {
+        $lastNumber = self::withTrashed()
+            ->where('trd_id', $trd->id)
+            ->max(\Illuminate\Support\Facades\DB::raw("CAST(SUBSTRING_INDEX(code, '.', -1) AS UNSIGNED)"));
+
+        $next = ($lastNumber ?? 0) + 1;
+
+        return $trd->version . '.' . str_pad($next, 3, '0', STR_PAD_LEFT);
     }
 }

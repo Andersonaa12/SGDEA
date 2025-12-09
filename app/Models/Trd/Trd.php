@@ -34,4 +34,11 @@ class Trd extends Model implements AuditableContract
     {
         return $this->belongsTo(\App\Models\User::class, 'updated_by');
     }
+
+    // Funciones
+    public function scopeActive($query)
+    {
+        return $query->where('active', 1);
+    }
+
 }

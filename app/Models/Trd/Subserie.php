@@ -44,4 +44,16 @@ class Subserie extends Model implements AuditableContract
     {
         return $this->belongsTo(\App\Models\User::class, 'updated_by');
     }
+
+    // Funciones
+    public static function generateCode(Serie $serie)
+    {
+        $lastNumber = self::withTrashed()
+            ->where('serie_id', $serie->id)
+            ->max(\Illuminate\Support\Facades\DB::raw("CAST(SUBSTRING_INDEX(code, '.', -1) AS UNSIGNED)"));
+
+        $next = ($lastNumber ?? 0) + 1;
+
+        return $serie->code . '.' . str_pad($next, 3, '0', STR_PAD_LEFT);
+    }
 }
