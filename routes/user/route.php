@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->prefix('users')->name('users.')->group(function () {
     
-    // PRIMERO: Role management routes
     Route::middleware('role:admin|super-admin')->prefix('roles')->name('roles.')->group(function () {
         Route::get('/', [RoleController::class, 'index'])->name('index');
         Route::get('/create', [RoleController::class, 'create'])->name('create');
@@ -17,11 +16,9 @@ Route::middleware(['auth'])->prefix('users')->name('users.')->group(function () 
         Route::put('/{role}', [RoleController::class, 'update'])->name('update')->whereNumber('role');
         Route::delete('/{role}', [RoleController::class, 'destroy'])->name('destroy')->whereNumber('role');
 
-        // Assign permissions to role
         Route::post('/{role}/permissions', [RoleController::class, 'syncPermissions'])->name('sync.permissions')->whereNumber('role');
     });
 
-    // SEGUNDO: Permission management routes
     Route::middleware('role:admin|super-admin')->prefix('permissions')->name('permissions.')->group(function () {
         Route::get('/', [PermissionController::class, 'index'])->name('index');
         Route::get('/create', [PermissionController::class, 'create'])->name('create');
@@ -32,7 +29,6 @@ Route::middleware(['auth'])->prefix('users')->name('users.')->group(function () 
         Route::delete('/{permission}', [PermissionController::class, 'destroy'])->name('destroy')->whereNumber('permission');
     });
 
-    // TERCERO: User management routes (wildcards al final, con constraints)
     Route::middleware('role:admin|super-admin')->group(function () {
         Route::get('/', [UserController::class, 'index'])->name('index');
         Route::get('/create', [UserController::class, 'create'])->name('create');
@@ -43,7 +39,6 @@ Route::middleware(['auth'])->prefix('users')->name('users.')->group(function () 
         Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy')->whereNumber('user');
         Route::patch('/{user}/toggle-active', [UserController::class, 'toggleActive'])->name('toggle-active')->whereNumber('user');
 
-        // Assign sections and subsections
         Route::post('/{user}/sections', [UserController::class, 'syncSections'])->name('sync.sections')->whereNumber('user');
         Route::post('/{user}/subsections', [UserController::class, 'syncSubsections'])->name('sync.subsections')->whereNumber('user');
     });
