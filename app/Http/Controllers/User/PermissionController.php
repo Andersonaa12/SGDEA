@@ -12,11 +12,6 @@ class PermissionController extends Controller
 {
     public function index()
     {
-        dd(
-        'Usuario autenticado: ' . Auth::id(),
-        'Roles en sesión: ' . Auth::user()->getRoleNames()->toArray(),
-        'Tiene super-admin: ' . (Auth::user()->hasRole('super-admin') ? 'SÍ' : 'NO')
-    );
         $permissions = Permission::latest()->paginate(10);
         return view('users.permissions.index', compact('permissions'));
     }
