@@ -21,7 +21,7 @@ class Expediente extends Model implements AuditableContract
     protected $fillable = [
         'number', 'subject', 'detail', 'parent_id', 'structure_id', 'section_id',
         'subsection_id', 'serie_id', 'subserie_id', 'opening_date',
-        'closing_date', 'version', 'status', 'metadata', 'created_by', 'updated_by','support_type_id',
+        'closing_date', 'version', 'status','created_by', 'updated_by','support_type_id',
         'phase_id',
     ];
 
@@ -115,7 +115,21 @@ class Expediente extends Model implements AuditableContract
     {
         return $this->hasOne(ExpedienteLocation::class)->orderByDesc('created_at');
     }
+    public function metadata()
+    {
+        return $this->hasMany(ExpedienteMetadata::class);
+    }
+    public function metadataAll()
+    {
+        return $this->hasMany(ExpedienteMetadata::class);
+    }
 
+    public function metadataValues()
+    {
+        return $this->belongsToMany(MetadataType::class, 'expediente_metadata')
+                    ->withPivot('value')
+                    ->withTimestamps();
+    }
     // ===================================================================
     // Scopes útiles
     // ===================================================================

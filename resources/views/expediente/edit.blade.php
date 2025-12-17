@@ -29,7 +29,6 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-                            <!-- Columna Izquierda -->
                             <div class="space-y-6">
                                 <div>
                                     <label for="number" class="block text-sm font-semibold text-gray-700 mb-2">
@@ -101,7 +100,6 @@
                                 </div>
                             </div>
 
-                            <!-- Columna Derecha -->
                             <div class="space-y-6">
                                 <div>
                                     <label for="serie_id" class="block text-sm font-semibold text-gray-700 mb-2">
@@ -264,6 +262,53 @@
                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500">{{ old('additional_details', $expediente->currentLocation?->additional_details) }}</textarea>
                                     @error('additional_details') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>
+                            </div>
+                        </div>
+                        <div class="col-span-1 md:col-span-2 border-t pt-8 mt-8">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-6">
+                                <i class="fas fa-tags mr-2"></i> Metadatos Adicionales
+                            </h3>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                @foreach($metadataTypes as $type)
+                                    @php
+                                        $value = $currentMetadata[$type->id] ?? old("metadata.{$type->id}");
+                                    @endphp
+
+                                    <div>
+                                        <label for="metadata_{{ $type->id }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                                            {{ $type->name }}
+                                            @if($type->required)<span class="text-red-500">*</span>@endif
+                                        </label>
+
+                                        @if($type->input_type === 'select')
+                                            <select name="metadata[{{ $type->id }}]" id="metadata_{{ $type->id }}"
+                                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                                    @if($type->required) required @endif>
+                                                <option value="">-- Seleccionar --</option>
+                                                @foreach($type->options as $option)
+                                                    <option value="{{ $option }}" {{ $value == $option ? 'selected' : '' }}>
+                                                        {{ $option }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        @elseif($type->input_type === 'number')
+                                            <input type="number" name="metadata[{{ $type->id }}]" id="metadata_{{ $type->id }}"
+                                                value="{{ $value }}"
+                                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                                @if($type->required) required @endif>
+                                        @else
+                                            <input type="text" name="metadata[{{ $type->id }}]" id="metadata_{{ $type->id }}"
+                                                value="{{ $value }}"
+                                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                                @if($type->required) required @endif>
+                                        @endif
+
+                                        @error("metadata.{$type->id}")
+                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                @endforeach
                             </div>
                         </div>
 

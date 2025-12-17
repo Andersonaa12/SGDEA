@@ -10,6 +10,7 @@ use App\Models\Expediente\Document;
 use App\Models\Expediente\Phase;
 use App\Models\Expediente\ExpedienteLocation;
 use App\Models\Expediente\SupportType;
+use App\Models\Expediente\MetadataType;
 use App\Models\Structure\OrganizationalStructure;
 use App\Models\Structure\Section;
 use App\Models\Structure\Subsection;
@@ -21,25 +22,44 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class ExpedienteController extends Controller
 {
-    /**
-     * Display a listing of the expedientes.
-     */
     public function index(Request $request)
     {
         try {
-            $query = Expediente::with(['structure', 'section', 'subsection', 'serie', 'subserie', 'creator', 'currentLocation']);
+            $stats = Expediente::query()
+                ->selectRaw('phase_id, COUNT(*) as total')
+                ->groupBy('phase_id')
+                ->with('phase')
+                ->get()
+                ->keyBy('phase_id');
 
-            // Filtros básicos
+            $total_expedientes = Expediente::count();
+
+            $in_management = $stats->get(Phase::where('code', Phase::CODE_MGMT)->first()?->id)?->total ?? 0;
+            $in_central = $stats->get(Phase::where('code', Phase::CODE_CENT)->first()?->id)?->total ?? 0;
+            $in_historical = $stats->get(Phase::where('code', Phase::CODE_HIST)->first()?->id)?->total ?? 0;
+
+            $query = Expediente::with([
+                'structure',
+                'section',
+                'subsection',
+                'serie',
+                'subserie',
+                'creator',
+                'currentLocation',
+                'phase'
+            ]);
+
             if ($request->filled('search')) {
-                $search = $request->search;
+                $search = $request->input('search');
                 $query->where(function ($q) use ($search) {
-                    $q->where('number', 'like', "%$search%")
-                      ->orWhere('subject', 'like', "%$search%")
-                      ->orWhere('detail', 'like', "%$search%");
+                    $q->where('number', 'like', "%{$search}%")
+                      ->orWhere('subject', 'like', "%{$search}%")
+                      ->orWhere('detail', 'like', "%{$search}%");
                 });
             }
 
@@ -53,308 +73,258 @@ class ExpedienteController extends Controller
 
             $expedientes = $query->paginate(15);
 
-            return view('expediente.index', compact('expedientes'));
+            $phases = Phase::active()->ordered()->get();
+
+            $metadataTypes = MetadataType::active()->ordered()->get();
+
+            return view('expediente.index', compact(
+                'expedientes',
+                'phases',
+                'total_expedientes',
+                'in_management',
+                'in_central',
+                'in_historical',
+                'metadataTypes'
+            ));
+
         } catch (Exception $e) {
             return redirect()->back()->with('error', 'Error al cargar la lista de expedientes: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Show the form for creating a new expediente.
-     */
     public function create()
     {
-        try {
-            $structures = OrganizationalStructure::where('active', true)->get();
-            $sections = Section::all();
-            $subsections = Subsection::all();
-            $series = Serie::all();
-            $subseries = Subserie::all();
-            $phases = Phase::active()->ordered()->get();
-            $supportTypes = SupportType::active()->get();
+        $structures = OrganizationalStructure::active()->get();
+        $sections = Section::all();
+        $subsections = Subsection::all();
+        $series = Serie::all();
+        $subseries = Subserie::all();
+        $supportTypes = SupportType::active()->get();
+        $phases = Phase::active()->ordered()->get();
+        $metadataTypes = MetadataType::active()->ordered()->get();
 
-            return view('expediente.create', compact('structures', 'sections', 'subsections', 'series', 'subseries', 'phases', 'supportTypes'));
-        } catch (Exception $e) {
-            return redirect()->route('expedientes.index')->with('error', 'Error al cargar el formulario de creación: ' . $e->getMessage());
-        }
+        return view('expediente.create', compact(
+            'structures', 'sections', 'subsections', 'series', 'subseries',
+            'supportTypes', 'phases', 'metadataTypes'
+        ));
     }
 
-    /**
-     * Store a newly created expediente in storage.
-     */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'number' => 'required|unique:expedientes,number',
+        $validated = $request->validate([
+            'number' => 'required|string|unique:expedientes,number',
             'subject' => 'required|string|max:255',
             'detail' => 'nullable|string',
-            'parent_id' => 'nullable|exists:expedientes,id',
-            'structure_id' => 'required|exists:organizational_structures,id',
+            'structure_id' => 'nullable|exists:organizational_structures,id',
             'section_id' => 'nullable|exists:sections,id',
             'subsection_id' => 'nullable|exists:subsections,id',
-            'serie_id' => 'required|exists:series,id',
+            'serie_id' => 'nullable|exists:series,id',
             'subserie_id' => 'nullable|exists:subseries,id',
             'opening_date' => 'required|date',
             'closing_date' => 'nullable|date|after_or_equal:opening_date',
-            'version' => 'nullable|integer',
-            'status' => 'required|in:open,closed,archived',
-            'metadata' => 'nullable|json',
             'support_type_id' => 'required|exists:support_types,id',
             'phase_id' => 'required|exists:phases,id',
-            // Campos de ubicación física (condicionales en el código)
-            'box' => 'nullable|string|max:50',
-            'folder' => 'nullable|string|max:50',
-            'type' => 'nullable|in:Tomo,Legajo,Libro,Otros',
-            'volume_number' => 'nullable|string|max:20',
+            'box' => 'nullable|string',
+            'folder' => 'nullable|string',
+            'type' => 'nullable|string',
+            'volume_number' => 'nullable|integer',
             'folios_count' => 'nullable|integer',
-            'additional_details' => 'nullable|string',
-        ], [
-            'number.required' => 'El número es obligatorio.',
-            'number.unique' => 'El número ya existe.',
-            'subject.required' => 'El asunto es obligatorio.',
-            'structure_id.required' => 'La estructura organizacional es obligatoria.',
-            'serie_id.required' => 'La serie es obligatoria.',
-            'opening_date.required' => 'La fecha de apertura es obligatoria.',
-            'status.required' => 'El estado es obligatorio.',
-            'support_type_id.required' => 'El tipo de soporte es obligatorio.',
-            'phase_id.required' => 'La fase es obligatoria.',
-            'box.required' => 'La caja es obligatoria para expedientes físicos.',
-            'folder.required' => 'La carpeta es obligatoria para expedientes físicos.',
-            'type.required' => 'El tipo es obligatorio para expedientes físicos.',
+            // Metadatos
+            'metadata' => 'array',
+            'metadata.*' => 'nullable|string',
         ]);
 
-        // Validación condicional para ubicación física
-        $supportType = SupportType::find($request->support_type_id);
-        if ($supportType && $supportType->is_physical) {
-            $validator->after(function ($validator) {
-                if (!$validator->getData()['box'] || !$validator->getData()['folder'] || !$validator->getData()['type']) {
-                    $validator->errors()->add('box', 'La caja es obligatoria para expedientes físicos.');
-                    $validator->errors()->add('folder', 'La carpeta es obligatoria para expedientes físicos.');
-                    $validator->errors()->add('type', 'El tipo es obligatorio para expedientes físicos.');
-                }
-            });
-        }
-
-        if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
-        }
-
+        DB::beginTransaction();
         try {
-            $expediente = new Expediente();
-            $expediente->number = $request->number;
-            $expediente->subject = $request->subject;
-            $expediente->detail = $request->detail;
-            $expediente->parent_id = $request->parent_id;
-            $expediente->structure_id = $request->structure_id;
-            $expediente->section_id = $request->section_id;
-            $expediente->subsection_id = $request->subsection_id;
-            $expediente->serie_id = $request->serie_id;
-            $expediente->subserie_id = $request->subserie_id;
-            $expediente->opening_date = $request->opening_date;
-            $expediente->closing_date = $request->closing_date;
-            $expediente->version = 1; // Versión inicial
-            $expediente->status = $request->status;
-            $expediente->metadata = $request->metadata;
-            $expediente->support_type_id = $request->support_type_id;
-            $expediente->phase_id = $request->phase_id;
-            $expediente->created_by = Auth::id();
-            $expediente->updated_by = Auth::id();
-            $expediente->save();
+            $expediente = Expediente::create([
+                'number' => $validated['number'],
+                'subject' => $validated['subject'],
+                'detail' => $validated['detail'],
+                'structure_id' => $validated['structure_id'],
+                'section_id' => $validated['section_id'],
+                'subsection_id' => $validated['subsection_id'],
+                'serie_id' => $validated['serie_id'],
+                'subserie_id' => $validated['subserie_id'],
+                'opening_date' => $validated['opening_date'],
+                'closing_date' => $validated['closing_date'],
+                'support_type_id' => $validated['support_type_id'],
+                'phase_id' => $validated['phase_id'],
+                'status' => 'open',
+                'version' => 1,
+                'created_by' => Auth::id(),
+                'updated_by' => Auth::id(),
+            ]);
 
-            // Guardar ubicación física si es físico o híbrido
-            if ($request->filled('box') && $request->filled('folder') && $request->filled('type')) {
-                ExpedienteLocation::create([
-                    'expediente_id' => $expediente->id,
+            $supportType = SupportType::find($validated['support_type_id']);
+            if ($supportType->is_physical || $supportType->is_electronic && $supportType->is_physical) {
+                if ($request->filled(['box', 'folder', 'type'])) {
+                    ExpedienteLocation::create([
+                        'expediente_id' => $expediente->id,
+                        'box' => $request->box,
+                        'folder' => $request->folder,
+                        'type' => $request->type,
+                        'volume_number' => $request->volume_number,
+                        'folios_count' => $request->folios_count,
+                        'created_by' => Auth::id(),
+                        'updated_by' => Auth::id(),
+                    ]);
+                }
+            }
+
+            $this->syncMetadata($expediente, $request->input('metadata', []));
+
+            $this->logHistory($expediente, 'created', $validated);
+
+            DB::commit();
+            return redirect()->route('expedientes.show', $expediente)
+                ->with('success', 'Expediente creado exitosamente.');
+        } catch (Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', 'Error al crear expediente: ' . $e->getMessage());
+        }
+    }
+
+    public function edit(Expediente $expediente)
+    {
+        $structures = OrganizationalStructure::active()->get();
+        $sections = Section::all();
+        $subsections = Subsection::all();
+        $series = Serie::all();
+        $subseries = Subserie::all();
+        $supportTypes = SupportType::active()->get();
+        $phases = Phase::active()->ordered()->get();
+        $metadataTypes = MetadataType::active()->ordered()->get();
+
+        $currentMetadata = $expediente->metadata()->pluck('value', 'metadata_type_id')->toArray();
+
+        return view('expediente.edit', compact(
+            'expediente', 'structures', 'sections', 'subsections', 'series', 'subseries',
+            'supportTypes', 'phases', 'metadataTypes', 'currentMetadata'
+        ));
+    }
+
+    public function update(Request $request, Expediente $expediente)
+    {
+        $validated = $request->validate([
+            'number' => ['required', 'string', Rule::unique('expedientes', 'number')->ignore($expediente->id)],
+            'subject' => 'required|string|max:255',
+            'detail' => 'nullable|string',
+            'structure_id' => 'nullable|exists:organizational_structures,id',
+            'section_id' => 'nullable|exists:sections,id',
+            'subsection_id' => 'nullable|exists:subsections,id',
+            'serie_id' => 'nullable|exists:series,id',
+            'subserie_id' => 'nullable|exists:subseries,id',
+            'opening_date' => 'required|date',
+            'closing_date' => 'nullable|date|after_or_equal:opening_date',
+            'support_type_id' => 'required|exists:support_types,id',
+            'phase_id' => 'required|exists:phases,id',
+            'box' => 'nullable|string',
+            'folder' => 'nullable|string',
+            'type' => 'nullable|string',
+            'metadata' => 'array',
+            'metadata.*' => 'nullable|string',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $oldData = $expediente->toArray();
+
+            $expediente->update([
+                'number' => $validated['number'],
+                'subject' => $validated['subject'],
+                'detail' => $validated['detail'],
+                'structure_id' => $validated['structure_id'],
+                'section_id' => $validated['section_id'],
+                'subsection_id' => $validated['subsection_id'],
+                'serie_id' => $validated['serie_id'],
+                'subserie_id' => $validated['subserie_id'],
+                'opening_date' => $validated['opening_date'],
+                'closing_date' => $validated['closing_date'],
+                'support_type_id' => $validated['support_type_id'],
+                'phase_id' => $validated['phase_id'],
+                'updated_by' => Auth::id(),
+            ]);
+
+            $this->updatePhysicalLocation($expediente, $request);
+
+            $this->syncMetadata($expediente, $request->input('metadata', []));
+
+            $this->logHistory($expediente, 'updated', ['changes' => array_diff_assoc($validated, $oldData)]);
+
+            DB::commit();
+            return redirect()->route('expedientes.show', $expediente)
+                ->with('success', 'Expediente actualizado correctamente.');
+        } catch (Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', 'Error al actualizar: ' . $e->getMessage());
+        }
+    }
+
+    protected function syncMetadata(Expediente $expediente, array $metadataInput)
+    {
+        foreach ($metadataInput as $typeId => $value) {
+            $type = MetadataType::find($typeId);
+            if ($type) {
+                $expediente->metadata()->updateOrCreate(
+                    ['metadata_type_id' => $type->id],
+                    ['value' => $value ?: null]
+                );
+            }
+        }
+    }
+
+    protected function updatePhysicalLocation(Expediente $expediente, Request $request)
+    {
+        if ($request->filled(['box', 'folder', 'type'])) {
+            $expediente->latestLocation()->updateOrCreate(
+                ['expediente_id' => $expediente->id],
+                [
                     'box' => $request->box,
                     'folder' => $request->folder,
                     'type' => $request->type,
                     'volume_number' => $request->volume_number,
                     'folios_count' => $request->folios_count,
-                    'additional_details' => $request->additional_details,
-                    'created_by' => Auth::id(),
                     'updated_by' => Auth::id(),
-                ]);
-
-                // Registrar en historial
-                /* $this->logHistory($expediente, 'location_assigned', [
-                    'box' => $request->box,
-                    'folder' => $request->folder,
-                    'type' => $request->type,
-                ]); */
-            }
-
-            // Registrar creación en historial
-            $this->logHistory($expediente, 'created', []);
-
-            return redirect()->route('expedientes.index')->with('success', 'Expediente creado exitosamente.');
-        } catch (Exception $e) {
-            return redirect()->back()->with('error', 'Error al crear el expediente: ' . $e->getMessage());
+                ]
+            );
         }
     }
 
-    /**
-     * Display the specified expediente.
-     */
+    protected function logHistory($expediente, $event, $changes)
+    {
+        ExpedienteHistory::create([
+            'expediente_id' => $expediente->id,
+            'version' => $expediente->version,
+            'changes' => $changes,
+            'event' => $event,
+            'user_id' => Auth::id(),
+        ]);
+    }
+
+
     public function show($id)
     {
         try {
-            $expediente = Expediente::with(['parent', 'children', 'structure', 'section', 'subsection', 'serie', 'subserie', 'documents', 'histories', 'loans', 'creator', 'updater', 'phase', 'supportType', 'currentLocation'])->findOrFail($id);
+            $expediente = Expediente::with([
+                'parent', 'children', 'structure', 'section', 'subsection', 'serie', 'subserie',
+                'documents.documentType', 'histories.user', 'loans.user', 'transfers', 'supportType',
+                'phase', 'creator', 'updater', 'currentLocation.creator', 'locations.creator', 'metadataAll.metadataType'
+            ])->findOrFail($id);
 
-            return view('expediente.show', compact('expediente'));
+            $documentTypes = DocumentType::all();
+
+            return view('expediente.show', compact('expediente', 'documentTypes'));
         } catch (Exception $e) {
-            return redirect()->route('expedientes.index')->with('error', 'Error al mostrar el expediente: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error al cargar el expediente: ' . $e->getMessage());
         }
     }
-
-    /**
-     * Show the form for editing the specified expediente.
-     */
-    public function edit($id)
-    {
-        try {
-            $expediente = Expediente::with('currentLocation')->findOrFail($id);
-            $structures = OrganizationalStructure::where('active', true)->get();
-            $sections = Section::all();
-            $subsections = Subsection::all();
-            $series = Serie::all();
-            $subseries = Subserie::all();
-            $phases = Phase::active()->ordered()->get();
-            $supportTypes = SupportType::active()->get();
-
-            return view('expediente.edit', compact('expediente', 'structures', 'sections', 'subsections', 'series', 'subseries', 'phases', 'supportTypes'));
-        } catch (Exception $e) {
-            return redirect()->route('expedientes.index')->with('error', 'Error al cargar el formulario de edición: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Update the specified expediente in storage.
-     */
-    public function update(Request $request, $id)
-    {
-        $expediente = Expediente::findOrFail($id);
-
-        $validator = Validator::make($request->all(), [
-            'number' => ['required', Rule::unique('expedientes')->ignore($expediente->id)],
-            'subject' => 'required|string|max:255',
-            'detail' => 'nullable|string',
-            'parent_id' => 'nullable|exists:expedientes,id',
-            'structure_id' => 'required|exists:organizational_structures,id',
-            'section_id' => 'nullable|exists:sections,id',
-            'subsection_id' => 'nullable|exists:subsections,id',
-            'serie_id' => 'required|exists:series,id',
-            'subserie_id' => 'nullable|exists:subseries,id',
-            'opening_date' => 'required|date',
-            'closing_date' => 'nullable|date|after_or_equal:opening_date',
-            'version' => 'nullable|integer',
-            'status' => 'required|in:open,closed,archived',
-            'metadata' => 'nullable|json',
-            'support_type_id' => 'required|exists:support_types,id',
-            'phase_id' => 'required|exists:phases,id',
-            // Campos de ubicación física
-            'box' => 'nullable|string|max:50',
-            'folder' => 'nullable|string|max:50',
-            'type' => 'nullable|in:Tomo,Legajo,Libro,Otros',
-            'volume_number' => 'nullable|string|max:20',
-            'folios_count' => 'nullable|integer',
-            'additional_details' => 'nullable|string',
-        ], [
-            'number.required' => 'El número es obligatorio.',
-            'number.unique' => 'El número ya existe.',
-            'subject.required' => 'El asunto es obligatorio.',
-            'structure_id.required' => 'La estructura organizacional es obligatoria.',
-            'serie_id.required' => 'La serie es obligatoria.',
-            'opening_date.required' => 'La fecha de apertura es obligatoria.',
-            'status.required' => 'El estado es obligatorio.',
-            'support_type_id.required' => 'El tipo de soporte es obligatorio.',
-            'phase_id.required' => 'La fase es obligatoria.',
-            'box.required' => 'La caja es obligatoria para expedientes físicos.',
-            'folder.required' => 'La carpeta es obligatoria para expedientes físicos.',
-            'type.required' => 'El tipo es obligatorio para expedientes físicos.',
-        ]);
-
-        // Validación condicional para ubicación física
-        $supportType = SupportType::find($request->support_type_id);
-        if ($supportType && $supportType->is_physical) {
-            $validator->after(function ($validator) {
-                if (!$validator->getData()['box'] || !$validator->getData()['folder'] || !$validator->getData()['type']) {
-                    $validator->errors()->add('box', 'La caja es obligatoria para expedientes físicos.');
-                    $validator->errors()->add('folder', 'La carpeta es obligatoria para expedientes físicos.');
-                    $validator->errors()->add('type', 'El tipo es obligatorio para expedientes físicos.');
-                }
-            });
-        }
-
-        if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
-        }
-
-        try {
-            $oldValues = $expediente->toArray();
-            $expediente->number = $request->number;
-            $expediente->subject = $request->subject;
-            $expediente->detail = $request->detail;
-            $expediente->parent_id = $request->parent_id;
-            $expediente->structure_id = $request->structure_id;
-            $expediente->section_id = $request->section_id;
-            $expediente->subsection_id = $request->subsection_id;
-            $expediente->serie_id = $request->serie_id;
-            $expediente->subserie_id = $request->subserie_id;
-            $expediente->opening_date = $request->opening_date;
-            $expediente->closing_date = $request->closing_date;
-            $expediente->status = $request->status;
-            $expediente->metadata = $request->metadata;
-            $expediente->support_type_id = $request->support_type_id;
-            $expediente->phase_id = $request->phase_id;
-            $expediente->updated_by = Auth::id();
-            $expediente->version += 1;
-            $expediente->save();
-
-            // Actualizar o crear ubicación física si es físico o híbrido
-            if ($request->filled('box') && $request->filled('folder') && $request->filled('type')) {
-                $locationData = [
-                    'box' => $request->box,
-                    'folder' => $request->folder,
-                    'type' => $request->type,
-                    'volume_number' => $request->volume_number,
-                    'folios_count' => $request->folios_count,
-                    'additional_details' => $request->additional_details,
-                    'updated_by' => Auth::id(),
-                ];
-
-                if ($expediente->currentLocation) {
-                    $expediente->currentLocation->update($locationData);
-                } else {
-                    $locationData['expediente_id'] = $expediente->id;
-                    $locationData['created_by'] = Auth::id();
-                    ExpedienteLocation::create($locationData);
-                }
-
-                // Registrar en historial
-                $this->logHistory($expediente, 'location_updated', $locationData);
-            }
-
-            // Registrar cambios generales en historial
-            $changes = array_diff_assoc($expediente->toArray(), $oldValues);
-            $this->logHistory($expediente, 'updated', $changes);
-
-            return redirect()->route('expedientes.index')->with('success', 'Expediente actualizado exitosamente.');
-        } catch (Exception $e) {
-            return redirect()->back()->with('error', 'Error al actualizar el expediente: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Remove the specified expediente from storage.
-     */
-    public function destroy($id)
+        public function destroy($id)
     {
         try {
             $expediente = Expediente::findOrFail($id);
             $oldValues = $expediente->toArray();
             $expediente->delete();
 
-            // Registrar en historial (aunque borrado suave)
             $this->logHistory($expediente, 'deleted', $oldValues);
 
             return redirect()->route('expedientes.index')->with('success', 'Expediente eliminado exitosamente.');
@@ -363,18 +333,13 @@ class ExpedienteController extends Controller
         }
     }
 
-    // Métodos adicionales para documentos, préstamos e historial
-
-    /**
-     * Agregar documento a expediente
-     */
     public function addDocument(Request $request, $expedienteId)
     {
         $expediente = Expediente::findOrFail($expedienteId);
 
         $validator = Validator::make($request->all(), [
             'document_type_id' => 'required|exists:document_types,id',
-            'file' => 'required|file|mimes:pdf,tiff|max:20480', // 20MB max
+            'file' => 'required|file|mimes:pdf,tiff|max:20480',
             'document_date' => 'required|date',
             'folio' => 'nullable|integer',
             'analog' => 'boolean',
@@ -395,18 +360,14 @@ class ExpedienteController extends Controller
 
         try {
             $file = $request->file('file');
-            $path = $file->store('documents', 'public'); // Almacenar en storage/public/documents
+            $path = $file->store('documents', 'public'); 
 
-            // Validar y convertir si es necesario (simulado, implementar lógica real si se necesita)
             $mimeType = $file->getMimeType();
             if ($mimeType !== 'application/pdf' && $mimeType !== 'image/tiff') {
-                // Lógica de conversión (usar librerías como Imagick o similar)
-                // Por ahora, asumir que se convierte a PDF/A
-                $path = $this->convertToPdfA($path); // Función placeholder
+                $path = $this->convertToPdfA($path);
             }
 
-            // Aplicar OCR si es PDF (placeholder)
-            $ocrText = $this->applyOcr($path); // Función placeholder
+            $ocrText = $this->applyOcr($path);
 
             $document = new Document();
             $document->expediente_id = $expediente->id;
@@ -414,22 +375,21 @@ class ExpedienteController extends Controller
             $document->file_path = $path;
             $document->original_name = $file->getClientOriginalName();
             $document->mime_type = $mimeType;
-            $document->converted_from = null; // Asumir null por ahora
+            $document->converted_from = null;
             $document->size = $file->getSize();
             $document->document_date = $request->document_date;
             $document->folio = $request->folio ?? $this->generateFolio($expediente);
             $document->analog = $request->analog ?? false;
             $document->physical_location = $request->physical_location;
-            $document->ocr_applied = true; // Asumir aplicado
+            $document->ocr_applied = true;
             $document->ocr_text = $ocrText;
-            $document->signed = false; // Inicial
-            $document->signature_provider = null; // Inicial
+            $document->signed = false;
+            $document->signature_provider = null; 
             $document->metadata = $request->metadata;
             $document->uploaded_by = Auth::id();
             $document->updated_by = Auth::id();
             $document->save();
 
-            // Registrar en historial del expediente
             $this->logHistory($expediente, 'document_added', ['document_id' => $document->id]);
 
             return redirect()->route('expedientes.show', $expediente->id)->with('success', 'Documento agregado exitosamente.');
@@ -438,9 +398,6 @@ class ExpedienteController extends Controller
         }
     }
 
-    /**
-     * Agregar préstamo a expediente
-     */
     public function addLoan(Request $request, $expedienteId)
     {
         $expediente = Expediente::findOrFail($expedienteId);
@@ -476,7 +433,6 @@ class ExpedienteController extends Controller
             $loan->updated_by = Auth::id();
             $loan->save();
 
-            // Registrar en historial
             $this->logHistory($expediente, 'loan_added', ['loan_id' => $loan->id]);
 
             return redirect()->route('expedientes.show', $expediente->id)->with('success', 'Préstamo registrado exitosamente.');
@@ -485,33 +441,16 @@ class ExpedienteController extends Controller
         }
     }
 
-    // Función helper para log de historial
-    protected function logHistory($expediente, $event, $changes)
-    {
-        $history = new ExpedienteHistory();
-        $history->expediente_id = $expediente->id;
-        $history->version = $expediente->version;
-        $history->changes = json_encode($changes);
-        $history->event = $event;
-        $history->user_id = Auth::id();
-        $history->save();
-    }
-
-    // Placeholder para conversión a PDF/A
     protected function convertToPdfA($path)
     {
-        // Implementar con Ghostscript o similar
-        return $path; // Retornar path convertido
+        return $path; 
     }
 
-    // Placeholder para OCR
     protected function applyOcr($path)
     {
-        // Implementar con Tesseract o similar
         return 'Texto OCR extraído';
     }
 
-    // Generar folio consecutivo
     protected function generateFolio($expediente)
     {
         return $expediente->documents()->count() + 1;

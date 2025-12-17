@@ -11,7 +11,9 @@ class Phase extends Model
     use HasFactory, SoftDeletes;
 
     protected $table = 'phases';
-
+    public const CODE_MGMT = 'MGMT';   // Tramitación / Gestión
+    public const CODE_CENT = 'CENT';   // Archivo Central
+    public const CODE_HIST = 'HIST';   // Archivo Histórico
     /**
      * The attributes that are mass assignable.
      */

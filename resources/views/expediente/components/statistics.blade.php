@@ -28,7 +28,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-semibold text-gray-500 tracking-wider">En Gestión</p>
-                            <p class="text-xl font-extrabold text-indigo-600 mt-3">{{ $total_expedientes ?? '1.248' }}</p>
+                            <p class="text-xl font-extrabold text-indigo-600 mt-3">{{ $in_management ?? '1.248' }}</p>
                         </div>
                         <div class="p-4 bg-indigo-100 rounded-xl group-hover:bg-indigo-200 transition-colors">
                             <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,7 +48,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-semibold text-gray-500 tracking-wider">Archivo Central</p>
-                            <p class="text-xl font-extrabold text-indigo-600 mt-3">{{ $total_expedientes ?? '1.248' }}</p>
+                            <p class="text-xl font-extrabold text-indigo-600 mt-3">{{ $in_central ?? '1.248' }}</p>
                         </div>
                         <div class="p-4 bg-indigo-100 rounded-xl group-hover:bg-indigo-200 transition-colors">
                             <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,7 +69,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-semibold text-gray-500 tracking-wider">Histórico</p>
-                            <p class="text-xl font-extrabold text-indigo-600 mt-3">{{ $total_expedientes ?? '1.248' }}</p>
+                            <p class="text-xl font-extrabold text-indigo-600 mt-3">{{ $in_historical ?? '1.248' }}</p>
                         </div>
                         <div class="p-4 bg-indigo-100 rounded-xl group-hover:bg-indigo-200 transition-colors">
                             <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

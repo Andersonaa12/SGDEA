@@ -13,46 +13,33 @@ use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        // This might not be used directly, as documents are nested under expedientes
         $documents = Document::with(['expediente', 'documentType', 'uploader'])->paginate(10);
         return view('expediente.documents.index', compact('documents'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create(Expediente $expediente)
     {
         $documentTypes = DocumentType::all();
         return view('expediente.documents.create', compact('expediente', 'documentTypes'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request, Expediente $expediente)
     {
         $validated = $request->validate([
             'document_type_id' => 'required|exists:document_types,id',
             'file' => 'required|file|mimes:pdf,doc,docx,jpg,png|max:20480',
-            'original_name' => 'nullable|string|max:255',
-            'mime_type' => 'nullable|string',
-            'converted_from' => 'nullable|string',
-            'size' => 'nullable|integer',
             'document_date' => 'nullable|date',
             'folio' => 'nullable|string',
-            'analog' => 'nullable|boolean',
+            'analog' => 'nullable|accepted',
             'physical_location' => 'nullable|string',
-            'ocr_applied' => 'nullable|boolean',
+            'ocr_applied' => 'nullable|accepted',
             'ocr_text' => 'nullable|string',
-            'signed' => 'nullable|boolean',
+            'signed' => 'nullable|accepted',
             'signature_provider' => 'nullable|string',
-            'metadata' => 'nullable|array',
+            'metadata_keys.*' => 'nullable|string',
+            'metadata_values.*' => 'nullable|string',
         ]);
 
         if ($request->hasFile('file')) {
@@ -66,51 +53,53 @@ class DocumentController extends Controller
         $validated['expediente_id'] = $expediente->id;
         $validated['uploaded_by'] = Auth::id();
         $validated['updated_by'] = Auth::id();
+        $validated['analog'] = $request->has('analog');
+        $validated['ocr_applied'] = $request->has('ocr_applied');
+        $validated['signed'] = $request->has('signed');
+
+        $metadata = [];
+        if ($request->has('metadata_keys')) {
+            foreach ($request->input('metadata_keys') as $index => $key) {
+                if ($key) {
+                    $metadata[$key] = $request->input('metadata_values')[$index] ?? '';
+                }
+            }
+        }
+        $validated['metadata'] = $metadata;
 
         $document = Document::create($validated);
 
-        return redirect()->route('expedientes.show', $expediente)->with('success', 'Documento agregado exitosamente.');
+        return redirect()->route('expedientes.documents.show', $expediente)->with('success', 'Documento cargado exitosamente.');
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(Document $document)
     {
         $document->load(['expediente', 'documentType', 'uploader', 'updater']);
         return view('expediente.documents.show', compact('document'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
+    
     public function edit(Document $document)
     {
         $documentTypes = DocumentType::all();
         return view('expediente.documents.edit', compact('document', 'documentTypes'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, Document $document)
     {
         $validated = $request->validate([
             'document_type_id' => 'required|exists:document_types,id',
             'file' => 'nullable|file|mimes:pdf,doc,docx,jpg,png|max:20480',
-            'original_name' => 'nullable|string|max:255',
-            'mime_type' => 'nullable|string',
-            'converted_from' => 'nullable|string',
-            'size' => 'nullable|integer',
             'document_date' => 'nullable|date',
             'folio' => 'nullable|string',
-            'analog' => 'nullable|boolean',
+            'analog' => 'nullable|accepted',
             'physical_location' => 'nullable|string',
-            'ocr_applied' => 'nullable|boolean',
+            'ocr_applied' => 'nullable|accepted',
             'ocr_text' => 'nullable|string',
-            'signed' => 'nullable|boolean',
+            'signed' => 'nullable|accepted',
             'signature_provider' => 'nullable|string',
-            'metadata' => 'nullable|array',
+            'metadata_keys.*' => 'nullable|string',
+            'metadata_values.*' => 'nullable|string',
         ]);
 
         if ($request->hasFile('file')) {
@@ -126,21 +115,33 @@ class DocumentController extends Controller
         }
 
         $validated['updated_by'] = Auth::id();
+        $validated['analog'] = $request->has('analog');
+        $validated['ocr_applied'] = $request->has('ocr_applied');
+        $validated['signed'] = $request->has('signed');
+
+        // Process metadata
+        $metadata = [];
+        if ($request->has('metadata_keys')) {
+            foreach ($request->input('metadata_keys') as $index => $key) {
+                if ($key) {
+                    $metadata[$key] = $request->input('metadata_values')[$index] ?? '';
+                }
+            }
+        }
+        $validated['metadata'] = $metadata;
 
         $document->update($validated);
 
-        return redirect()->route('documents.show', $document)->with('success', 'Documento actualizado exitosamente.');
+        return redirect()->route('expedientes.documents.show', $document->expediente_id)->with('success', 'Documento actualizado exitosamente.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Document $document)
     {
         if ($document->file_path) {
             Storage::disk('public')->delete($document->file_path);
         }
+        $expedienteId = $document->expediente_id;
         $document->delete();
-        return redirect()->route('expedientes.show', $document->expediente_id)->with('success', 'Documento eliminado exitosamente.');
+        return redirect()->route('expedientes.show', $expedienteId)->with('success', 'Documento eliminado exitosamente.');
     }
 }

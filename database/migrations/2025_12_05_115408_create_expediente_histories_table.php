@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('expediente_id')->constrained()->onDelete('cascade');
             $table->integer('version');
             $table->json('changes');
-            $table->enum('event', ['create', 'update', 'phase_change', 'close']);
+            $table->enum('event', ['created', 'updated', 'phase_change', 'close']);
             $table->foreignId('user_id')->constrained('users');
             $table->timestamps();
         });
