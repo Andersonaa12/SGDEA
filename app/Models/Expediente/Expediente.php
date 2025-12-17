@@ -130,10 +130,8 @@ class Expediente extends Model implements AuditableContract
                     ->withPivot('value')
                     ->withTimestamps();
     }
-    // ===================================================================
-    // Scopes útiles
-    // ===================================================================
 
+    // Scopes 
     public function scopeOpen($query)
     {
         return $query->where('status', 'open');
@@ -154,9 +152,7 @@ class Expediente extends Model implements AuditableContract
         return $query->whereHas('phase', fn($q) => $q->where('active', true));
     }
 
-    // ===================================================================
-    // Accessors útiles
-    // ===================================================================
+    // Accessors
 
     public function getIsClosedAttribute(): bool
     {

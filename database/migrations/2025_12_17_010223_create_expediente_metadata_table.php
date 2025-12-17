@@ -15,7 +15,6 @@ return new class extends Migration
             $table->text('value')->nullable();
             $table->timestamps();
 
-            // Índice compuesto para consultas rápidas
             $table->index(['expediente_id', 'metadata_type_id']);
             $table->unique(['expediente_id', 'metadata_type_id']);
         });

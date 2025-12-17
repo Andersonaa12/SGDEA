@@ -26,7 +26,6 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-                            <!-- Columna Izquierda -->
                             <div class="space-y-6">
                                 <div>
                                     <label for="number" class="block text-sm font-semibold text-gray-700 mb-2">
@@ -96,7 +95,6 @@
                                 </div>
                             </div>
 
-                            <!-- Columna Derecha -->
                             <div class="space-y-6">
                                 <div>
                                     <label for="serie_id" class="block text-sm font-semibold text-gray-700 mb-2">
@@ -190,7 +188,6 @@
                             </div>
                         </div>
 
-                        {{-- Ubicación Física - Solo si es físico o híbrido --}}
                         <div id="physical-location-section" class="hidden space-y-6 mt-8 p-6 bg-amber-50 border-2 border-amber-300 rounded-xl">
                             <h3 class="text-lg font-bold text-amber-900 flex items-center gap-2">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -373,8 +370,8 @@
 
         supportTypeSelect.addEventListener('change', togglePhysicalLocation);
         openingDateInput.addEventListener('change', updateClosingDateMin);
-        togglePhysicalLocation(); // Inicial
-        updateClosingDateMin(); // Inicial
-        setOpeningDateMax(); // Inicial
+        togglePhysicalLocation();
+        updateClosingDateMin();
+        setOpeningDateMax();
     });
 </script>

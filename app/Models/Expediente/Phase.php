@@ -11,12 +11,10 @@ class Phase extends Model
     use HasFactory, SoftDeletes;
 
     protected $table = 'phases';
-    public const CODE_MGMT = 'MGMT';   // Tramitación / Gestión
-    public const CODE_CENT = 'CENT';   // Archivo Central
-    public const CODE_HIST = 'HIST';   // Archivo Histórico
-    /**
-     * The attributes that are mass assignable.
-     */
+    public const CODE_MGMT = 'MGMT';
+    public const CODE_CENT = 'CENT';
+    public const CODE_HIST = 'HIST';
+    
     protected $fillable = [
         'code',
         'name',
@@ -27,9 +25,6 @@ class Phase extends Model
         'metadata',
     ];
 
-    /**
-     * The attributes that should be cast.
-     */
     protected $casts = [
         'metadata' => 'array',
         'active' => 'boolean',
@@ -38,17 +33,12 @@ class Phase extends Model
         'deleted_at' => 'datetime',
     ];
 
-    /**
-     * Scope para obtener solo fases activas
-     */
+    
     public function scopeActive($query)
     {
         return $query->where('active', true);
     }
 
-    /**
-     * Scope para ordenar por el campo "order"
-     */
     public function scopeOrdered($query)
     {
         return $query->orderBy('order')->orderBy('name');
