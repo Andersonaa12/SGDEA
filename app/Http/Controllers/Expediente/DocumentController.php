@@ -69,11 +69,12 @@ class DocumentController extends Controller
 
         $document = Document::create($validated);
 
-        return redirect()->route('expedientes.documents.show', $expediente)->with('success', 'Documento cargado exitosamente.');
+        return redirect()->route('documents.show', $document)->with('success', 'Documento cargado exitosamente.');
     }
 
     public function show(Document $document)
     {
+        $document = Document::find($document);
         $document->load(['expediente', 'documentType', 'uploader', 'updater']);
         return view('expediente.documents.show', compact('document'));
     }
@@ -81,8 +82,9 @@ class DocumentController extends Controller
     
     public function edit(Document $document)
     {
+        $document = Document::find($document);
         $documentTypes = DocumentType::all();
-        return view('expediente.documents.edit', compact('document', 'documentTypes'));
+        return view('documents.edit', compact('document', 'documentTypes'));
     }
 
     public function update(Request $request, Document $document)

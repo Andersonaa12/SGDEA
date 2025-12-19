@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use OwenIt\Auditing\Models\Audit;
 use Exception;
 
 class ExpedienteController extends Controller
@@ -247,7 +248,7 @@ class ExpedienteController extends Controller
 
             $this->updatePhysicalLocation($expediente, $request);
 
-            $this->syncMetadata($expediente, $request->input('metadata', []));
+            /* $this->syncMetadata($expediente, $request->input('metadata', [])); */
 
             $this->logHistory($expediente, 'updated', ['changes' => array_diff_assoc($validated, $oldData)]);
 
@@ -454,5 +455,137 @@ class ExpedienteController extends Controller
     protected function generateFolio($expediente)
     {
         return $expediente->documents()->count() + 1;
+    }
+    public function history(Expediente $expediente)
+    {
+        // 1. Historial manual (expediente_histories)
+        $manualHistory = ExpedienteHistory::where('expediente_id', $expediente->id)
+            ->with('user')
+            ->orderByDesc('created_at')
+            ->get();
+
+        // 2. Auditorías automáticas del expediente principal
+        $expedienteAudits = $expediente->audits()
+            ->with('user')
+            ->orderByDesc('created_at')
+            ->get();
+
+        // 3. Auditorías de documentos relacionados
+        $documentAudits = Audit::where('auditable_type', \App\Models\Expediente\Document::class)
+            ->whereIn('auditable_id', $expediente->documents()->pluck('id'))
+            ->with('user')
+            ->orderByDesc('created_at')
+            ->get();
+
+        // 4. Auditorías de préstamos
+        $loanAudits = Audit::where('auditable_type', \App\Models\Expediente\ExpedienteLoan::class)
+            ->whereIn('auditable_id', $expediente->loans()->pluck('id'))
+            ->with('user')
+            ->orderByDesc('created_at')
+            ->get();
+
+        // 5. Auditorías de ubicaciones físicas
+        $locationAudits = Audit::where('auditable_type', \App\Models\Expediente\ExpedienteLocation::class)
+            ->whereIn('auditable_id', $expediente->locations()->pluck('id'))
+            ->with('user')
+            ->orderByDesc('created_at')
+            ->get();
+
+        // Unificar todo en una colección ordenada por fecha
+        $allEvents = collect();
+
+        // Eventos manuales
+        foreach ($manualHistory as $entry) {
+            $allEvents->push([
+                'date'        => $entry->created_at,
+                'user'        => $entry->user,
+                'type'        => 'manual',
+                'event'       => $entry->event,
+                'description' => $this->formatManualEvent($entry),
+                'changes'     => $entry->changes,
+            ]);
+        }
+
+        // Auditorías del expediente
+        foreach ($expedienteAudits as $audit) {
+            $allEvents->push([
+                'date'        => $audit->created_at,
+                'user'        => $audit->user,
+                'type'        => 'audit',
+                'event'       => $audit->event,
+                'description' => $this->formatAuditEvent($audit, 'Expediente'),
+                'old_values'  => $audit->old_values,
+                'new_values'  => $audit->new_values,
+            ]);
+        }
+
+        // Auditorías de documentos
+        foreach ($documentAudits as $audit) {
+            $doc = $expediente->documents()->find($audit->auditable_id);
+            $allEvents->push([
+                'date'        => $audit->created_at,
+                'user'        => $audit->user,
+                'type'        => 'audit',
+                'event'       => $audit->event,
+                'description' => $this->formatAuditEvent($audit, 'Documento: ' . ($doc?->original_name ?? 'Eliminado')),
+                'old_values'  => $audit->old_values,
+                'new_values'  => $audit->new_values,
+            ]);
+        }
+
+        // Auditorías de préstamos y ubicaciones (similar)
+        foreach ($loanAudits as $audit) {
+            $allEvents->push([
+                'date'        => $audit->created_at,
+                'user'        => $audit->user,
+                'type'        => 'audit',
+                'event'       => $audit->event,
+                'description' => $this->formatAuditEvent($audit, 'Préstamo'),
+                'old_values'  => $audit->old_values,
+                'new_values'  => $audit->new_values,
+            ]);
+        }
+
+        foreach ($locationAudits as $audit) {
+            $allEvents->push([
+                'date'        => $audit->created_at,
+                'user'        => $audit->user,
+                'type'        => 'audit',
+                'event'       => $audit->event,
+                'description' => $this->formatAuditEvent($audit, 'Ubicación física'),
+                'old_values'  => $audit->old_values,
+                'new_values'  => $audit->new_values,
+            ]);
+        }
+
+        // Ordenar por fecha descendente
+        $timeline = $allEvents->sortByDesc('date')->values();
+
+        return view('expediente.history', compact('expediente', 'timeline'));
+    }
+
+    // Métodos auxiliares para formatear la descripción
+
+    private function formatManualEvent(ExpedienteHistory $entry): string
+    {
+        return match ($entry->event) {
+            'loan_added'     => 'Se registró un préstamo del expediente',
+            'loan_returned'  => 'Se registró la devolución del expediente',
+            'closed'         => 'El expediente fue cerrado',
+            'reopened'       => 'El expediente fue reabierto',
+            'phase_changed'  => 'Cambio de fase del expediente',
+            default          => ucfirst(str_replace('_', ' ', $entry->event)),
+        };
+    }
+
+    private function formatAuditEvent(Audit $audit, string $context): string
+    {
+        return match ($audit->event) {
+            'created' => "$context creado",
+            'updated' => "$context actualizado",
+            'deleted' => "$context eliminado (soft delete)",
+            'restored'=> "$context restaurado",
+            default   => "$context - {$audit->event}",
+        };
     }
 }

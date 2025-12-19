@@ -154,7 +154,7 @@
                                     </div>
                                 </template>
                                 <button type="button" @click="sections.push({ section_id: '', role_in_section: '' })"
-                                        class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition">
+                                        class="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition">
                                     Añadir Sección
                                 </button>
                             </div>
@@ -179,7 +179,7 @@
                                     </div>
                                 </template>
                                 <button type="button" @click="subsections.push({ subsection_id: '', role_in_subsection: '' })"
-                                        class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition">
+                                        class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition">
                                     Añadir Subsección
                                 </button>
                             </div>
