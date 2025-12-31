@@ -20,10 +20,8 @@
             </div>
         </div>
     </x-slot>
-
     @include('expediente.components.tabs')
     @include('expediente.components.statistics')
-
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
@@ -41,13 +39,11 @@
                             Nuevo Expediente
                         </a>
                     </div>
-
                     <!-- Búsqueda -->
-                    <form method="GET"
-                          class="mb-10 bg-gradient-to-r from-indigo-50 to-blue-50 p-6 rounded-2xl border border-indigo-200 shadow-sm">
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <form id="search-form" class="mb-10 bg-gradient-to-r from-indigo-50 to-blue-50 p-6 rounded-2xl border border-indigo-200 shadow-sm">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <input type="text" name="search" value="{{ request('search') }}"
-                                   placeholder="Número, asunto o detalle..."
+                                   placeholder="Número, asunto, detalle, metadatos, OCR..."
                                    class="px-5 py-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 transition-shadow">
                             <select name="phase"
                                     class="px-5 py-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 transition-shadow">
@@ -62,18 +58,21 @@
                                 <option value="open" {{ request('status') == 'open' ? 'selected' : '' }}>Abierto</option>
                                 <option value="closed" {{ request('status') == 'closed' ? 'selected' : '' }}>Cerrado</option>
                             </select>
+                        </div>
+                        <div class="mt-6 flex justify-end">
                             <button type="submit"
-                                    class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md transition-all duration-200 hover:shadow-lg">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                     stroke-width="2" stroke="currentColor" class="w-5 h-5">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                          d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                                    class="inline-flex items-center gap-3 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                                 </svg>
                                 Buscar
                             </button>
                         </div>
                     </form>
-
+                    <div id="expedientes-list" class="grid grid-cols-1 gap-6">
+                    </div>
+                    <div id="pagination" class="mt-10">
+                    </div>
                     <div class="grid grid-cols-1 gap-6">
                         @forelse($expedientes as $exp)
                             <div class="bg-white border border-gray-200 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
@@ -203,19 +202,172 @@
             </div>
         </div>
     </div>
-
     <!-- Carga de SweetAlert2 (agrega esto en tu layout principal si prefieres) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     @push('scripts')
         <script>
             document.addEventListener('DOMContentLoaded', function () {
-                // Confirmar cierre de expediente
-                document.querySelectorAll('.close-expediente-btn').forEach(button => {
-                    button.addEventListener('click', function (e) {
+                const csrf = document.querySelector('meta[name="csrf-token"]').content;
+                const searchUrl = '{{ route('expedientes.search') }}';
+                const searchForm = document.getElementById('search-form');
+                const expedientesList = document.getElementById('expedientes-list');
+                const searchInputs = {
+                    search: document.querySelector('input[name="search"]'),
+                    phase: document.querySelector('select[name="phase"]'),
+                    status: document.querySelector('select[name="status"]'),
+                };
+                function performSearch() {
+                    expedientesList.innerHTML = `
+                        <div class="text-center py-20">
+                            <svg class="w-24 h-24 mx-auto text-gray-300 mb-6 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.2"
+                                      d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p class="text-2xl font-medium text-gray-500">Cargando expedientes...</p>
+                        </div>
+                    `;
+                    const params = new URLSearchParams();
+                    params.append('q', searchInputs.search.value);
+                    if (searchInputs.phase.value) params.append('phase', searchInputs.phase.value);
+                    if (searchInputs.status.value) params.append('status', searchInputs.status.value);
+                    fetch(`${searchUrl}?${params.toString()}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.length === 0) {
+                                expedientesList.innerHTML = `
+                                    <div class="text-center py-20">
+                                        <svg class="w-24 h-24 mx-auto text-gray-300 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.2"
+                                                  d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        <p class="text-2xl font-medium text-gray-500">No se encontraron expedientes</p>
+                                        <p class="text-gray-400 mt-2">Intenta ajustar los filtros o crea uno nuevo.</p>
+                                    </div>
+                                `;
+                                return;
+                            }
+                            let html = '';
+                            data.forEach(exp => {
+                                const subjectLimited = exp.subject.substring(0, 80) + (exp.subject.length > 80 ? '...' : '');
+                                const detailLimited = exp.detail.substring(0, 80) + (exp.detail.length > 80 ? '...' : '');
+                                const phaseClasses = {
+                                    'MGMT': 'bg-amber-100 text-amber-800 border border-amber-200',
+                                    'CENT': 'bg-indigo-100 text-indigo-800 border border-indigo-200',
+                                    'HIST': 'bg-purple-100 text-purple-800 border border-purple-200',
+                                };
+                                const phaseClass = phaseClasses[exp.phase_code] || 'bg-gray-100 text-gray-800 border border-gray-200';
+                                const statusClass = exp.status === 'open' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-red-100 text-red-800 border border-red-200';
+                                const statusText = exp.status === 'open' ? 'Abierto' : 'Cerrado';
+                                html += `
+                                    <div class="bg-white border border-gray-200 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                                        <div class="p-8 relative">
+                                            <!-- Acciones rápidas -->
+                                            <div class="absolute top-6 right-6 flex gap-3">
+                                                <a href="${exp.show_url}"
+                                                   class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl shadow transition-all duration-200 hover:shadow-md">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                                         stroke-width="1.8" stroke="currentColor" class="w-4 h-4">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                              d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                                                    </svg>
+                                                    Gestionar
+                                                </a>
+                                                ${exp.status === 'open' ? `
+                                                    <button class="close-expediente-btn inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-xl shadow transition-all duration-200 hover:shadow-md" data-url="${exp.close_url}">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                                             stroke-width="1.8" stroke="currentColor" class="w-4 h-4">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                  d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                                                        </svg>
+                                                        Cerrar
+                                                    </button>
+                                                ` : ''}
+                                            </div>
+                                            <div class="flex items-start gap-6">
+                                                <div class="flex-shrink-0">
+                                                    <div class="p-4 bg-indigo-100 rounded-2xl">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                                             stroke-width="1.5" stroke="currentColor" class="w-12 h-12 text-indigo-600">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                  d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                                <div class="flex-grow">
+                                                    <h4 class="text-2xl font-extrabold text-indigo-700">${exp.number}</h4>
+                                                    <p class="text-gray-600 mt-1 text-base leading-relaxed">
+                                                        ${subjectLimited}
+                                                    </p>
+                                                    <p class="text-gray-400 mt-1 text-base leading-relaxed">
+                                                        ${detailLimited}
+                                                    </p>
+                                                    <div class="mt-5 flex flex-wrap gap-3">
+                                                        <span class="inline-flex items-center px-4 py-2 rounded-full text-xs font-bold tracking-wide ${phaseClass}">
+                                                            ${exp.phase_name.charAt(0).toUpperCase() + exp.phase_name.slice(1)}
+                                                        </span>
+                                                        <span class="inline-flex items-center px-4 py-2 rounded-full text-xs font-bold tracking-wide ${statusClass}">
+                                                            ${statusText}
+                                                        </span>
+                                                        <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold tracking-wide bg-gray-100 text-gray-800 border border-gray-300">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                                                 stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                      d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6" />
+                                                            </svg>
+                                                            Documentos: ${exp.documents_count}
+                                                        </span>
+                                                        ${exp.support_type_name ? `
+                                                            <span class="inline-flex items-center px-4 py-2 rounded-full text-xs font-bold tracking-wide bg-orange-100 text-orange-800 border border-orange-200">
+                                                                ${exp.support_type_name}
+                                                            </span>
+                                                        ` : ''}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Eliminar y Historial -->
+                                            <div class="mt-8 pt-6 border-t border-gray-200 flex justify-end gap-4">
+                                                <a href="${exp.history_url}"
+                                                   class="text-green-600 hover:text-green-800 font-medium text-sm flex items-center gap-2 transition-colors cursor-pointer px-4">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                                         stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                              d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Zm3.75 11.625a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                                                    </svg>
+                                                    Historial
+                                                </a>
+                                                <button class="delete-expediente-btn text-red-600 hover:text-red-800 font-medium text-sm flex items-center gap-2 transition-colors cursor-pointer" data-url="${exp.delete_url}">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                                         stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                              d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                                    </svg>
+                                                    Eliminar expediente
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                            expedientesList.innerHTML = html;
+                        })
+                        .catch(error => {
+                            console.error('Error en la búsqueda:', error);
+                            expedientesList.innerHTML = '<p class="text-center text-red-500">Error al cargar los resultados.</p>';
+                        });
+                }
+                searchForm.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    performSearch();
+                });
+                // Carga inicial
+                performSearch();
+                // Event delegation para botones de cerrar y eliminar
+                document.addEventListener('click', function (e) {
+                    const closeBtn = e.target.closest('.close-expediente-btn');
+                    if (closeBtn) {
                         e.preventDefault();
-                        const form = this.closest('form');
-
+                        const url = closeBtn.dataset.url;
                         Swal.fire({
                             title: '¿Cerrar este expediente?',
                             text: 'El expediente pasará a estado cerrado. Esta acción se puede revertir si es necesario.',
@@ -228,18 +380,30 @@
                             reverseButtons: true
                         }).then((result) => {
                             if (result.isConfirmed) {
-                                form.submit();
+                                fetch(url, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': csrf,
+                                    },
+                                    body: JSON.stringify({ _method: 'PATCH' }),
+                                }).then(res => {
+                                    if (res.ok) {
+                                        performSearch(); // Refrescar lista
+                                        Swal.fire('¡Expediente cerrado!', '', 'success');
+                                    } else {
+                                        Swal.fire('Error', 'No se pudo cerrar el expediente.', 'error');
+                                    }
+                                }).catch(() => {
+                                    Swal.fire('Error', 'Ocurrió un error en la solicitud.', 'error');
+                                });
                             }
                         });
-                    });
-                });
-
-                // Confirmar eliminación de expediente
-                document.querySelectorAll('.delete-expediente-btn').forEach(button => {
-                    button.addEventListener('click', function (e) {
+                    }
+                    const deleteBtn = e.target.closest('.delete-expediente-btn');
+                    if (deleteBtn) {
                         e.preventDefault();
-                        const form = this.closest('form');
-
+                        const url = deleteBtn.dataset.url;
                         Swal.fire({
                             title: '¿Eliminar expediente permanentemente?',
                             text: 'Se eliminará el expediente y TODOS sus documentos asociados. ¡Esta acción NO se puede deshacer!',
@@ -262,13 +426,28 @@
                                         Swal.showLoading();
                                     }
                                 });
-                                form.submit();
+                                fetch(url, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': csrf,
+                                    },
+                                    body: JSON.stringify({ _method: 'DELETE' }),
+                                }).then(res => {
+                                    if (res.ok) {
+                                        performSearch(); // Refrescar lista
+                                        Swal.fire('¡Expediente eliminado!', '', 'success');
+                                    } else {
+                                        Swal.fire('Error', 'No se pudo eliminar el expediente.', 'error');
+                                    }
+                                }).catch(() => {
+                                    Swal.fire('Error', 'Ocurrió un error en la solicitud.', 'error');
+                                });
                             }
                         });
-                    });
+                    }
                 });
             });
         </script>
     @endpush
 </x-app-layout>
-

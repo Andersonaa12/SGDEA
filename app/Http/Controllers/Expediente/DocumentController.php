@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Smalot\PdfParser\Parser;
 
 class DocumentController extends Controller
 {
@@ -67,24 +68,31 @@ class DocumentController extends Controller
         }
         $validated['metadata'] = $metadata;
 
+        // Extraer texto del PDF si ocr_applied está activo y es un PDF
+        if ($validated['ocr_applied'] && isset($validated['mime_type']) && $validated['mime_type'] === 'application/pdf' && isset($validated['file_path'])) {
+            $validated['ocr_text'] = $this->extractPdfText(Storage::disk('public')->path($validated['file_path']));
+        }
+
         $document = Document::create($validated);
 
-        return redirect()->route('documents.show', $document)->with('success', 'Documento cargado exitosamente.');
+        return redirect()->route('documents.show',  $document)->with('success', 'Documento cargado exitosamente.');
     }
 
     public function show(Document $document)
     {
-        $document = Document::find($document);
+        $document = Document::find($document->id);
+       
         $document->load(['expediente', 'documentType', 'uploader', 'updater']);
+         
         return view('expediente.documents.show', compact('document'));
     }
 
     
     public function edit(Document $document)
     {
-        $document = Document::find($document);
+        $document = Document::find($document->id);
         $documentTypes = DocumentType::all();
-        return view('documents.edit', compact('document', 'documentTypes'));
+        return view('expediente.documents.edit', compact('document', 'documentTypes'));
     }
 
     public function update(Request $request, Document $document)
@@ -132,9 +140,18 @@ class DocumentController extends Controller
         }
         $validated['metadata'] = $metadata;
 
+        // Extraer texto del PDF si ocr_applied está activo y es un PDF
+        $currentMimeType = isset($validated['mime_type']) ? $validated['mime_type'] : $document->mime_type;
+        $currentFilePath = isset($validated['file_path']) ? $validated['file_path'] : $document->file_path;
+        if ($validated['ocr_applied'] && $currentMimeType === 'application/pdf' && $currentFilePath) {
+            $validated['ocr_text'] = $this->extractPdfText(Storage::disk('public')->path($currentFilePath));
+        } elseif (!$validated['ocr_applied']) {
+            $validated['ocr_text'] = null; // Limpiar ocr_text si ocr_applied se desactiva
+        }
+
         $document->update($validated);
 
-        return redirect()->route('expedientes.documents.show', $document->expediente_id)->with('success', 'Documento actualizado exitosamente.');
+        return redirect()->route('documents.show', $document)->with('success', 'Documento actualizado exitosamente.');
     }
 
     public function destroy(Document $document)
@@ -145,5 +162,22 @@ class DocumentController extends Controller
         $expedienteId = $document->expediente_id;
         $document->delete();
         return redirect()->route('expedientes.show', $expedienteId)->with('success', 'Documento eliminado exitosamente.');
+    }
+
+    private function extractPdfText(string $filePath): string
+    {
+        try {
+            $parser = new Parser();
+            $pdf = $parser->parseFile($filePath);
+            $text = $pdf->getText();
+
+            $text = preg_replace('/\s+/', ' ', $text);
+            $text = trim($text);
+
+            return $text;
+        } catch (\Exception $e) {
+            \Log::error('Error al extraer texto de PDF: ' . $e->getMessage());
+            return '';
+        }
     }
 }

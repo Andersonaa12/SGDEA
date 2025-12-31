@@ -18,4 +18,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('expedientes/{expediente}/documents-list', [DocumentController::class, 'index'])->name('expedientes.documents-list');
     Route::get('expedientes/{expediente}/documents-upload', [DocumentController::class, 'create'])->name('expedientes.documents-upload');
+
+    Route::get('/expedientes/search', [ExpedienteController::class, 'search'])->name('expedientes.search');
 });

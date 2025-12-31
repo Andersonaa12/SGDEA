@@ -90,7 +90,7 @@
                     </div>
 
                     <!-- Resto de información (se mantiene igual pero con mejor estilo) -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                         <div class="bg-blue-50 p-6 rounded-2xl border border-blue-200 shadow-sm">
                             <p class="text-sm font-medium text-blue-700">Sección / Subsección</p>
                             <p class="text-xl font-bold text-gray-800 mt-2">
@@ -103,16 +103,30 @@
                                 {{ $expediente->structure?->version ?? '—' }}
                             </p>
                         </div>
-                        @if($expediente->supportType?->is_physical && $expediente->currentLocation)
+                        
+                    </div>
+                    @if($expediente->supportType?->is_physical && $expediente->currentLocation)
                             <div class="bg-amber-50 p-6 rounded-2xl border border-amber-300 shadow-sm">
-                                <p class="text-sm font-medium text-amber-700">Ubicación Física</p>
-                                <p class="text-xl font-bold text-gray-800 mt-2">
-                                    {{ $expediente->currentLocation->full_location }}
-                                </p>
+                                <h3 class="text-sm font-medium text-amber-700 mb-4">Ubicación Física</h3>
+                                <dl class="grid grid-cols-5 gap-5 sm:grid-cols-5">
+                                    <div>
+                                        <dt class="text-sm font-medium text-gray-500">Caja: <strong>{{ $expediente->currentLocation->box ?? 'No especificado' }}</strong></dt>
+                                    </div>
+                                    <div>
+                                        <dt class="text-sm font-medium text-gray-500">Carpeta: <strong>{{ $expediente->currentLocation->folder ?? 'No especificado' }}</strong> </dt>
+                                    </div>
+                                    <div>
+                                        <dt class="text-sm font-medium text-gray-500">Tipo: <strong>{{ $expediente->currentLocation->type ?? 'No especificado' }}</strong> </dt>
+                                    </div>
+                                    <div>
+                                        <dt class="text-sm font-medium text-gray-500">No°: <strong>{{ $expediente->currentLocation->volume_number ?? 'No especificado' }}</strong> </dt>
+                                    </div>
+                                    <div>
+                                        <dt class="text-sm font-medium text-gray-500">No° Folios: <strong>{{ $expediente->currentLocation->folios_count ?? 'No especificado' }}</strong> </dt>
+                                    </div>
+                                </dl>
                             </div>
                         @endif
-                    </div>
-
                     <div class="bg-gray-50 p-6 rounded-2xl shadow-sm mb-8">
                         <h4 class="font-bold text-gray-800 mb-4">Metadatos Adicionales</h4>
                         @if($expediente->metadataAll?->count())
@@ -269,10 +283,10 @@
                             </label>
                         </div>
 
-                        <div class="mb-8">
+                       {{--  <div class="mb-8">
                             <label for="ocr_text" class="block text-sm font-semibold text-gray-700 mb-2">Texto OCR (opcional)</label>
                             <textarea id="ocr_text" name="ocr_text" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 transition-shadow"></textarea>
-                        </div>
+                        </div> --}}
 
                         <div class="mb-8">
                             <label for="signature_provider" class="block text-sm font-semibold text-gray-700 mb-2">Proveedor de Firma</label>

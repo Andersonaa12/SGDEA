@@ -77,11 +77,11 @@
                             @error('signed') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
                         </div>
                     </div>
-                    <div>
+                    {{-- <div>
                         <label for="ocr_text" class="block text-sm font-medium text-gray-700 mb-1">Texto OCR</label>
                         <textarea id="ocr_text" name="ocr_text" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">{{ $document->ocr_text }}</textarea>
                         @error('ocr_text') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
-                    </div>
+                    </div> --}}
                     <div>
                         <label for="signature_provider" class="block text-sm font-medium text-gray-700 mb-1">Proveedor de Firma</label>
                         <input type="text" id="signature_provider" name="signature_provider" value="{{ $document->signature_provider }}" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">

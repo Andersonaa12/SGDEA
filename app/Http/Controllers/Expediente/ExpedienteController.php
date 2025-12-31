@@ -25,6 +25,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use OwenIt\Auditing\Models\Audit;
 use Exception;
+use Illuminate\Support\Arr;
 
 class ExpedienteController extends Controller
 {
@@ -72,7 +73,7 @@ class ExpedienteController extends Controller
                 $query->where('phase_id', $request->phase_id);
             }
 
-            $expedientes = $query->paginate(15);
+            $expedientes = $query->orderBy('id','desc')->paginate(15);
 
             $phases = Phase::active()->ordered()->get();
 
@@ -225,7 +226,6 @@ class ExpedienteController extends Controller
             'metadata' => 'array',
             'metadata.*' => 'nullable|string',
         ]);
-
         DB::beginTransaction();
         try {
             $oldData = $expediente->toArray();
@@ -248,9 +248,11 @@ class ExpedienteController extends Controller
 
             $this->updatePhysicalLocation($expediente, $request);
 
-            /* $this->syncMetadata($expediente, $request->input('metadata', [])); */
+            $this->syncMetadata($expediente, $request->input('metadata', []));
 
-            $this->logHistory($expediente, 'updated', ['changes' => array_diff_assoc($validated, $oldData)]);
+            $fieldsToDiff = Arr::except($validated, ['metadata', 'box', 'folder', 'type']);  // Excluye lo que se maneja aparte.
+            $changes = array_diff_assoc($fieldsToDiff, Arr::only($oldData, array_keys($fieldsToDiff)));
+            $this->logHistory($expediente, 'updated', ['changes' => $changes]);
 
             DB::commit();
             return redirect()->route('expedientes.show', $expediente)
@@ -266,6 +268,7 @@ class ExpedienteController extends Controller
         foreach ($metadataInput as $typeId => $value) {
             $type = MetadataType::find($typeId);
             if ($type) {
+                $expediente = Expediente::find($expediente->id);
                 $expediente->metadata()->updateOrCreate(
                     ['metadata_type_id' => $type->id],
                     ['value' => $value ?: null]
@@ -587,5 +590,75 @@ class ExpedienteController extends Controller
             'restored'=> "$context restaurado",
             default   => "$context - {$audit->event}",
         };
+    }
+
+    public function search(Request $request)
+    {
+        $query = Expediente::query()
+            ->with(['phase', 'supportType', 'documents']);
+
+        $search = trim($request->input('q'));
+        if ($search) {
+            $terms = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
+            if (!empty($terms)) {
+                $query->where(function ($q) use ($terms) {
+                    foreach ($terms as $term) {
+                        $q->orWhere('number', 'like', "%{$term}%")
+                          ->orWhere('subject', 'like', "%{$term}%")
+                          ->orWhere('detail', 'like', "%{$term}%")
+                          ->orWhere('metadata', 'like', "%{$term}%");
+                    }
+                })->orWhereHas('documents', function ($dq) use ($terms) {
+                    $dq->where(function ($dd) use ($terms) {
+                        foreach ($terms as $term) {
+                            $dd->orWhere('ocr_text', 'like', "%{$term}%")
+                               ->orWhere('metadata', 'like', "%{$term}%")
+                               ->orWhere('original_name', 'like', "%{$term}%")
+                               ->orWhere('folio', 'like', "%{$term}%");
+                        }
+                    });
+                });
+            }
+        }
+        if ($request->filled('phase')) {
+            $phaseMap = [
+                'gestión' => Phase::CODE_MGMT,
+                'central' => Phase::CODE_CENT,
+                'historico' => Phase::CODE_HIST,
+            ];
+            $phaseCode = $phaseMap[$request->phase] ?? null;
+            if ($phaseCode) {
+                $phase = Phase::where('code', $phaseCode)->first();
+                if ($phase) {
+                    $query->where('phase_id', $phase->id);
+                }
+            }
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $expedientes = $query->orderByDesc('id')->limit(50)->get();
+
+        $results = $expedientes->map(function ($exp) {
+            return [
+                'id' => $exp->id,
+                'number' => $exp->number,
+                'subject' => $exp->subject,
+                'detail' => $exp->detail,
+                'status' => $exp->status,
+                'phase_name' => $exp->phase->name ?? '',
+                'phase_code' => $exp->phase->code ?? '',
+                'support_type_name' => $exp->supportType->name ?? '',
+                'documents_count' => $exp->documents->count(),
+                'show_url' => route('expedientes.show', $exp),
+                'history_url' => route('expedientes.history', $exp),
+                'close_url' => route('expedientes.close', $exp),
+                'delete_url' => route('expedientes.destroy', $exp),
+            ];
+        });
+
+        return response()->json($results);
     }
 }
