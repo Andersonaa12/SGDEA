@@ -55,22 +55,49 @@ class ExpedienteController extends Controller
                 'currentLocation',
                 'phase'
             ]);
+            
+            $search = $request->input('search');
 
-            if ($request->filled('search')) {
-                $search = $request->input('search');
-                $query->where(function ($q) use ($search) {
-                    $q->where('number', 'like', "%{$search}%")
-                      ->orWhere('subject', 'like', "%{$search}%")
-                      ->orWhere('detail', 'like', "%{$search}%");
-                });
+            if ($search) {
+                $terms = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
+                if (!empty($terms)) {
+                    $query->where(function ($q) use ($terms) {
+                        foreach ($terms as $term) {
+                            $q->orWhere('number', 'like', "%{$term}%")
+                            ->orWhere('subject', 'like', "%{$term}%")
+                            ->orWhere('detail', 'like', "%{$term}%")
+                            ->orWhere('metadata', 'like', "%{$term}%");
+                        }
+                    })->orWhereHas('documents', function ($dq) use ($terms) {
+                        $dq->where(function ($dd) use ($terms) {
+                            foreach ($terms as $term) {
+                                $dd->orWhere('ocr_text', 'like', "%{$term}%")
+                                ->orWhere('metadata', 'like', "%{$term}%")
+                                ->orWhere('original_name', 'like', "%{$term}%")
+                                ->orWhere('folio', 'like', "%{$term}%");
+                            }
+                        });
+                    });
+                }
+            }
+            
+            if ($request->filled('phase')) {
+                $phaseMap = [
+                    'gestión' => Phase::CODE_MGMT,
+                    'central' => Phase::CODE_CENT,
+                    'historico' => Phase::CODE_HIST,
+                ];
+                $phaseCode = $phaseMap[$request->phase] ?? null;
+                if ($phaseCode) {
+                    $phase = Phase::where('code', $phaseCode)->first();
+                    if ($phase) {
+                        $query->where('phase_id', $phase->id);
+                    }
+                }
             }
 
             if ($request->filled('status')) {
                 $query->where('status', $request->status);
-            }
-
-            if ($request->filled('phase_id')) {
-                $query->where('phase_id', $request->phase_id);
             }
 
             $expedientes = $query->orderBy('id','desc')->paginate(15);
@@ -592,73 +619,4 @@ class ExpedienteController extends Controller
         };
     }
 
-    public function search(Request $request)
-    {
-        $query = Expediente::query()
-            ->with(['phase', 'supportType', 'documents']);
-
-        $search = trim($request->input('q'));
-        if ($search) {
-            $terms = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
-            if (!empty($terms)) {
-                $query->where(function ($q) use ($terms) {
-                    foreach ($terms as $term) {
-                        $q->orWhere('number', 'like', "%{$term}%")
-                          ->orWhere('subject', 'like', "%{$term}%")
-                          ->orWhere('detail', 'like', "%{$term}%")
-                          ->orWhere('metadata', 'like', "%{$term}%");
-                    }
-                })->orWhereHas('documents', function ($dq) use ($terms) {
-                    $dq->where(function ($dd) use ($terms) {
-                        foreach ($terms as $term) {
-                            $dd->orWhere('ocr_text', 'like', "%{$term}%")
-                               ->orWhere('metadata', 'like', "%{$term}%")
-                               ->orWhere('original_name', 'like', "%{$term}%")
-                               ->orWhere('folio', 'like', "%{$term}%");
-                        }
-                    });
-                });
-            }
-        }
-        if ($request->filled('phase')) {
-            $phaseMap = [
-                'gestión' => Phase::CODE_MGMT,
-                'central' => Phase::CODE_CENT,
-                'historico' => Phase::CODE_HIST,
-            ];
-            $phaseCode = $phaseMap[$request->phase] ?? null;
-            if ($phaseCode) {
-                $phase = Phase::where('code', $phaseCode)->first();
-                if ($phase) {
-                    $query->where('phase_id', $phase->id);
-                }
-            }
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        $expedientes = $query->orderByDesc('id')->limit(50)->get();
-
-        $results = $expedientes->map(function ($exp) {
-            return [
-                'id' => $exp->id,
-                'number' => $exp->number,
-                'subject' => $exp->subject,
-                'detail' => $exp->detail,
-                'status' => $exp->status,
-                'phase_name' => $exp->phase->name ?? '',
-                'phase_code' => $exp->phase->code ?? '',
-                'support_type_name' => $exp->supportType->name ?? '',
-                'documents_count' => $exp->documents->count(),
-                'show_url' => route('expedientes.show', $exp),
-                'history_url' => route('expedientes.history', $exp),
-                'close_url' => route('expedientes.close', $exp),
-                'delete_url' => route('expedientes.destroy', $exp),
-            ];
-        });
-
-        return response()->json($results);
-    }
 }
