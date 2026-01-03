@@ -7,10 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use OwenIt\Auditing\Auditable;
+use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Auth;
+use App\Traits\TracksCreatorUpdater;
 
 class Expediente extends Model implements AuditableContract
 {
-    use HasFactory, SoftDeletes, Auditable;
+    use HasFactory, SoftDeletes, Auditable, TracksCreatorUpdater;
 
     protected $table = 'expedientes';
 
@@ -19,7 +22,7 @@ class Expediente extends Model implements AuditableContract
     ];
 
     protected $fillable = [
-        'number', 'subject', 'detail', 'parent_id', 'structure_id', 'section_id',
+        'number', 'name', 'subject', 'detail', 'parent_id', 'structure_id', 'section_id',
         'subsection_id', 'serie_id', 'subserie_id', 'opening_date',
         'closing_date', 'version', 'status','created_by', 'updated_by','support_type_id',
         'phase_id',
@@ -89,6 +92,11 @@ class Expediente extends Model implements AuditableContract
     public function phase()
     {
         return $this->belongsTo(Phase::class, 'phase_id');
+    }
+
+    public function responsible()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'responsible_id');
     }
 
     public function creator()
@@ -177,5 +185,21 @@ class Expediente extends Model implements AuditableContract
     public function getFullNumberAttribute(): string
     {
         return $this->number;
+    }
+    private function generateNumber(): string
+    {
+        $year = Date::now()->year;
+        $count = static::whereYear('created_at', $year)->count() + 1;
+        $paddedId = str_pad($count, 5, '0', STR_PAD_LEFT);
+
+        return "EXP-{$year}-{$paddedId}";
+    }
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            $model->number = $model->generateNumber();
+        });
     }
 }

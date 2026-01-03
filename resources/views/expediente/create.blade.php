@@ -29,11 +29,11 @@
                             <div class="space-y-6">
                                 <div>
                                     <label for="number" class="block text-sm font-semibold text-gray-700 mb-2">
-                                        Número del Expediente <span class="text-red-500">*</span>
+                                        Nombre del Expediente <span class="text-red-500">*</span>
                                     </label>
-                                    <input type="text" name="number" id="number" value="{{ old('number') }}" required
+                                    <input type="text" name="name" id="name" value="{{ old('name') }}" required
                                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
-                                    @error('number') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                    @error('name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>
 
                                 <div>

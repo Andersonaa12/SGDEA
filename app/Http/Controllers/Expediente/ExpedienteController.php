@@ -141,7 +141,7 @@ class ExpedienteController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'number' => 'required|string|unique:expedientes,number',
+            'name' => 'required|string|max:255',
             'subject' => 'required|string|max:255',
             'detail' => 'nullable|string',
             'structure_id' => 'nullable|exists:organizational_structures,id',
@@ -166,7 +166,7 @@ class ExpedienteController extends Controller
         DB::beginTransaction();
         try {
             $expediente = Expediente::create([
-                'number' => $validated['number'],
+                'name' => $validated['name'],
                 'subject' => $validated['subject'],
                 'detail' => $validated['detail'],
                 'structure_id' => $validated['structure_id'],
@@ -180,8 +180,7 @@ class ExpedienteController extends Controller
                 'phase_id' => $validated['phase_id'],
                 'status' => 'open',
                 'version' => 1,
-                'created_by' => Auth::id(),
-                'updated_by' => Auth::id(),
+                'responsible_id' => Auth::id(),
             ]);
 
             $supportType = SupportType::find($validated['support_type_id']);
@@ -194,8 +193,6 @@ class ExpedienteController extends Controller
                         'type' => $request->type,
                         'volume_number' => $request->volume_number,
                         'folios_count' => $request->folios_count,
-                        'created_by' => Auth::id(),
-                        'updated_by' => Auth::id(),
                     ]);
                 }
             }
@@ -235,7 +232,7 @@ class ExpedienteController extends Controller
     public function update(Request $request, Expediente $expediente)
     {
         $validated = $request->validate([
-            'number' => ['required', 'string', Rule::unique('expedientes', 'number')->ignore($expediente->id)],
+            'name' => 'required|string|max:255',
             'subject' => 'required|string|max:255',
             'detail' => 'nullable|string',
             'structure_id' => 'nullable|exists:organizational_structures,id',
@@ -258,7 +255,7 @@ class ExpedienteController extends Controller
             $oldData = $expediente->toArray();
 
             $expediente->update([
-                'number' => $validated['number'],
+                'name' => $validated['name'],
                 'subject' => $validated['subject'],
                 'detail' => $validated['detail'],
                 'structure_id' => $validated['structure_id'],

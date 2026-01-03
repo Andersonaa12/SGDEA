@@ -35,7 +35,7 @@
                                         Número del Expediente <span class="text-red-500">*</span>
                                     </label>
                                     <input type="text" name="number" id="number" value="{{ old('number', $expediente->number) }}" required
-                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" disabled>
                                     @error('number') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>
 

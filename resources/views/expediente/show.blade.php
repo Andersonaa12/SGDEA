@@ -60,6 +60,7 @@
                             <div>
                                 <h1 class="text-5xl font-extrabold">{{ $expediente->number }}</h1>
                                 <p class="text-2xl mt-2 opacity-95">{{ $expediente->subject }}</p>
+                                <p class="text-1xl mt-2 opacity-95">{{ $expediente->responsible->name }} - {{ $expediente->responsible->email }}</p>
                             </div>
                             <div>
                                 <span class="inline-block px-6 py-3 rounded-full text-lg font-bold

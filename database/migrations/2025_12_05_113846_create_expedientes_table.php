@@ -14,8 +14,10 @@ return new class extends Migration
         Schema::create('expedientes', function (Blueprint $table) {
             $table->id();
             $table->string('number')->unique();
+            $table->string('name');
             $table->string('subject');
             $table->text('detail')->nullable();
+            $table->foreignId('responsible_id')->nullable()->constrained('users');
             $table->foreignId('parent_id')->nullable()->constrained('expedientes');
             $table->foreignId('structure_id')->constrained('organizational_structures')->onDelete('cascade');
             $table->foreignId('section_id')->constrained();

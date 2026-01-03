@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->prefix('users')->name('users.')->group(function () {
     
-    Route::middleware('role:admin|super-admin')->prefix('roles')->name('roles.')->group(function () {
+    Route::middleware('role:administrador|super-administrador')->prefix('roles')->name('roles.')->group(function () {
         Route::get('/', [RoleController::class, 'index'])->name('index');
         Route::get('/create', [RoleController::class, 'create'])->name('create');
         Route::post('/', [RoleController::class, 'store'])->name('store');
@@ -19,7 +19,7 @@ Route::middleware(['auth'])->prefix('users')->name('users.')->group(function () 
         Route::post('/{role}/permissions', [RoleController::class, 'syncPermissions'])->name('sync.permissions')->whereNumber('role');
     });
 
-    Route::middleware('role:admin|super-admin')->prefix('permissions')->name('permissions.')->group(function () {
+    Route::middleware('role:administrador|super-administrador')->prefix('permissions')->name('permissions.')->group(function () {
         Route::get('/', [PermissionController::class, 'index'])->name('index');
         Route::get('/create', [PermissionController::class, 'create'])->name('create');
         Route::post('/', [PermissionController::class, 'store'])->name('store');
@@ -29,7 +29,7 @@ Route::middleware(['auth'])->prefix('users')->name('users.')->group(function () 
         Route::delete('/{permission}', [PermissionController::class, 'destroy'])->name('destroy')->whereNumber('permission');
     });
 
-    Route::middleware('role:admin|super-admin')->group(function () {
+    Route::middleware('role:administrador|super-administrador')->group(function () {
         Route::get('/', [UserController::class, 'index'])->name('index');
         Route::get('/create', [UserController::class, 'create'])->name('create');
         Route::post('/', [UserController::class, 'store'])->name('store');
