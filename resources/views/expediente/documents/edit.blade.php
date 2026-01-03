@@ -17,7 +17,7 @@
         </div>
     </x-slot>
 
-    <div class="py-12">
+    <div class="py-2">
         <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white shadow-2xl rounded-xl overflow-hidden p-8">
                 <h3 class="text-2xl font-bold mb-6 text-gray-800">Editar Documento</h3>

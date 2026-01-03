@@ -17,8 +17,8 @@
         </div>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="py-2">
+        <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="bg-white shadow-2xl rounded-2xl overflow-hidden">
                 <!-- Cabecera con gradiente -->
                 <div class="bg-gradient-to-r from-indigo-600 to-purple-700 p-10 text-white">

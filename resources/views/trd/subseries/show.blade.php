@@ -21,8 +21,8 @@
         </div>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
+    <div class="py-2">
+        <div class="max-w-8xl mx-auto sm:px-6 lg:px-8 py-4">
             <div class="bg-white shadow-2xl rounded-xl overflow-hidden">
                 <div class="bg-gradient-to-r from-purple-600 to-pink-600 p-8 text-white">
                     <div class="flex items-center justify-between">

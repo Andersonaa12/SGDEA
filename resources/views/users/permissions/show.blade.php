@@ -17,7 +17,7 @@
         </div>
     </x-slot>
 
-    <div class="py-12">
+    <div class="py-2">
         <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white shadow-2xl rounded-xl overflow-hidden">
                 <div class="bg-gradient-to-r from-indigo-600 to-purple-700 p-8 text-white">

@@ -1,4 +1,4 @@
-<div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+<div class="max-w-8xl mx-auto sm:px-6 lg:px-8">
     <div class="flex flex-wrap -mx-3 lg:-mx-6">
         
         <div class="w-full sm:w-1/2 lg:w-1/4 px-3 lg:px-6 mb-6">

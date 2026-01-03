@@ -17,8 +17,8 @@
         </div>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
+    <div class="py-4">
+        <div class="max-w-8xl mx-auto sm:px-6 lg:px-8 py-4">
             <div class="bg-white shadow-xl rounded-lg overflow-hidden">
                 <div class="p-8">
                     <form action="{{ route('expedientes.store') }}" method="POST" class="space-y-8">
@@ -28,7 +28,7 @@
 
                             <div class="space-y-6">
                                 <div>
-                                    <label for="number" class="block text-sm font-semibold text-gray-700 mb-2">
+                                    <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">
                                         Nombre del Expediente <span class="text-red-500">*</span>
                                     </label>
                                     <input type="text" name="name" id="name" value="{{ old('name') }}" required
@@ -57,7 +57,7 @@
                                         Estructura Organizacional <span class="text-red-500">*</span>
                                     </label>
                                     <select name="structure_id" id="structure_id" required
-                                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                            class="select2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                                         <option value="">Seleccionar estructura</option>
                                         @foreach($structures as $structure)
                                             <option value="{{ $structure->id }}" {{ old('structure_id') == $structure->id ? 'selected' : '' }}>
@@ -69,28 +69,18 @@
                                 </div>
 
                                 <div>
-                                    <label for="section_id" class="block text-sm font-semibold text-gray-700 mb-2">Sección</label>
+                                    <label for="section_id" class="block text-sm font-semibold text-gray-700 mb-2">Sección <span class="text-red-500">*</span></label>
                                     <select name="section_id" id="section_id"
-                                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                            class="select2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                                         <option value="">Ninguna</option>
-                                        @foreach($sections as $section)
-                                            <option value="{{ $section->id }}" {{ old('section_id') == $section->id ? 'selected' : '' }}>
-                                                {{ $section->code }} - {{ $section->name }}
-                                            </option>
-                                        @endforeach
                                     </select>
                                 </div>
 
                                 <div>
-                                    <label for="subsection_id" class="block text-sm font-semibold text-gray-700 mb-2">Subsección</label>
+                                    <label for="subsection_id" class="block text-sm font-semibold text-gray-700 mb-2">Subsección <span class="text-red-500">*</span></label>
                                     <select name="subsection_id" id="subsection_id"
-                                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                            class="select2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                                         <option value="">Ninguna</option>
-                                        @foreach($subsections as $subsection)
-                                            <option value="{{ $subsection->id }}" {{ old('subsection_id') == $subsection->id ? 'selected' : '' }}>
-                                                {{ $subsection->code }} - {{ $subsection->name }}
-                                            </option>
-                                        @endforeach
                                     </select>
                                 </div>
                             </div>
@@ -101,7 +91,7 @@
                                         Serie Documental (TRD) <span class="text-red-500">*</span>
                                     </label>
                                     <select name="serie_id" id="serie_id" required
-                                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                            class="select2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                                         <option value="">Seleccionar serie</option>
                                         @foreach($series as $serie)
                                             <option value="{{ $serie->id }}" {{ old('serie_id') == $serie->id ? 'selected' : '' }}>
@@ -115,13 +105,8 @@
                                 <div>
                                     <label for="subserie_id" class="block text-sm font-semibold text-gray-700 mb-2">Subserie</label>
                                     <select name="subserie_id" id="subserie_id"
-                                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                            class="select2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                                         <option value="">Ninguna</option>
-                                        @foreach($subseries as $subserie)
-                                            <option value="{{ $subserie->id }}" {{ old('subserie_id') == $subserie->id ? 'selected' : '' }}>
-                                                {{ $subserie->code }} - {{ $subserie->name }}
-                                            </option>
-                                        @endforeach
                                     </select>
                                 </div>
 
@@ -146,7 +131,7 @@
                                         Tipo de Soporte <span class="text-red-500">*</span>
                                     </label>
                                     <select name="support_type_id" id="support_type_id" required
-                                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                            class="select2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                                         <option value="">Seleccionar tipo</option>
                                         @foreach($supportTypes as $type)
                                             <option value="{{ $type->id }}" {{ old('support_type_id') == $type->id ? 'selected' : '' }}>
@@ -162,7 +147,7 @@
                                         Fase del Ciclo Vital <span class="text-red-500">*</span>
                                     </label>
                                     <select name="phase_id" id="phase_id" required
-                                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                            class="select2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                                         <option value="">Seleccionar fase</option>
                                         @foreach($phases as $phase)
                                             <option value="{{ $phase->id }}" {{ old('phase_id') == $phase->id ? 'selected' : '' }}>
@@ -178,7 +163,7 @@
                                         Estado <span class="text-red-500">*</span>
                                     </label>
                                     <select name="status" id="status" required
-                                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                            class="select2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                                         <option value="open" {{ old('status', 'open') == 'open' ? 'selected' : '' }}>Abierto</option>
                                         <option value="closed" {{ old('status') == 'closed' ? 'selected' : '' }}>Cerrado</option>
                                         <option value="archived" {{ old('status') == 'archived' ? 'selected' : '' }}>Archivado</option>
@@ -219,7 +204,7 @@
                                     <label for="type" class="block text-sm font-semibold text-gray-700 mb-2">
                                         Tipo <span class="text-red-500">*</span>
                                     </label>
-                                    <select name="type" id="type" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500" required>
+                                    <select name="type" id="type" class="select2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500" required>
                                         <option value="" disabled {{ old('type') ? '' : 'selected' }}>-- Seleccione tipo --</option>
                                         <option value="Legajo" {{ old('type') == 'Legajo' ? 'selected' : '' }}>Legajo</option>
                                         <option value="Tomo"   {{ old('type') == 'Tomo'   ? 'selected' : '' }}>Tomo</option>
@@ -260,7 +245,8 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-span-1 md:col-span-2 border-t pt-8 mt-8">
+
+                        <div class="border-t pt-8 mt-8">
                             <h3 class="text-lg font-semibold text-gray-800 mb-6">
                                 <i class="fas fa-tags mr-2"></i> Metadatos Adicionales
                             </h3>
@@ -279,7 +265,7 @@
 
                                         @if($type->input_type === 'select')
                                             <select name="metadata[{{ $type->id }}]" id="metadata_{{ $type->id }}"
-                                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                                    class="select2 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                                                     @if($type->required) required @endif>
                                                 <option value="">-- Seleccionar --</option>
                                                 @foreach($type->options as $option)
@@ -325,38 +311,45 @@
     </div>
 </x-app-layout>
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const supportTypeSelect = document.getElementById('support_type_id');
-        const physicalSection = document.getElementById('physical-location-section');
-        const openingDateInput = document.getElementById('opening_date');
-        const closingDateInput = document.getElementById('closing_date');
+    $(document).ready(function () {
+        $('.select2').select2();
 
+        // Toggle physical location
         function togglePhysicalLocation() {
-            const selectedTypeId = supportTypeSelect.value;
-            if (selectedTypeId) {
-                const selectedOption = supportTypeSelect.options[supportTypeSelect.selectedIndex];
-                const isPhysical = selectedOption.text.includes('físico') || selectedOption.text.includes('Híbrido') || selectedOption.text.includes('physical') || selectedOption.text.includes('hybrid');
+            var selectedText = $('#support_type_id option:selected').text().toLowerCase();
+            var selectedValue = $('#support_type_id').val();
+            var isPhysical = selectedText.includes('físico') || selectedText.includes('híbrido') || selectedText.includes('physical') || selectedText.includes('hybrid');
 
-                if (isPhysical) {
-                    physicalSection.classList.remove('hidden');
-                    document.getElementById('box').required = true;
-                    document.getElementById('folder').required = true;
-                    document.getElementById('type').required = true;
-                } else {
-                    physicalSection.classList.add('hidden');
-                    document.getElementById('box').required = false;
-                    document.getElementById('folder').required = false;
-                    document.getElementById('type').required = false;
-                }
+            if (selectedValue && isPhysical) {
+                $('#physical-location-section').removeClass('hidden');
+                $('#box').prop('required', true);
+                $('#folder').prop('required', true);
+                $('#type').prop('required', true);
+            } else {
+                $('#physical-location-section').addClass('hidden');
+                $('#box').prop('required', false);
+                $('#folder').prop('required', false);
+                $('#type').prop('required', false);
             }
         }
 
+        $('#support_type_id').on('change', togglePhysicalLocation);
+        togglePhysicalLocation(); // Initial check
+
+        // Date handling
+        var openingDateInput = $('#opening_date');
+        var closingDateInput = $('#closing_date');
+
         function updateClosingDateMin() {
-            if (openingDateInput.value) {
-                closingDateInput.min = openingDateInput.value;
+            if (openingDateInput.val()) {
+                closingDateInput.attr('min', openingDateInput.val());
             } else {
-                closingDateInput.min = '';
+                closingDateInput.attr('min', '');
             }
         }
 
@@ -365,13 +358,98 @@
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
             const day = String(today.getDate()).padStart(2, '0');
-            openingDateInput.max = `${year}-${month}-${day}`;
+            openingDateInput.attr('max', `${year}-${month}-${day}`);
         }
 
-        supportTypeSelect.addEventListener('change', togglePhysicalLocation);
-        openingDateInput.addEventListener('change', updateClosingDateMin);
-        togglePhysicalLocation();
+        openingDateInput.on('change', updateClosingDateMin);
         updateClosingDateMin();
         setOpeningDateMax();
+    });
+</script>
+
+<script>
+    $(document).ready(function() {
+        var oldStructure = '{{ old('structure_id') }}';
+        var oldSection = '{{ old('section_id') }}';
+        var oldSubsection = '{{ old('subsection_id') }}';
+        var oldSerie = '{{ old('serie_id') }}';
+        var oldSubserie = '{{ old('subserie_id') }}';
+
+        $('#structure_id').on('change', function() {
+            var structureId = $(this).val();
+            if (structureId) {
+                $.ajax({
+                    url: '/api/sections?structure_id=' + structureId,
+                    type: 'GET',
+                    success: function(data) {
+                        $('#section_id').empty().append('<option value="">Ninguna</option>');
+                        $.each(data, function(key, section) {
+                            $('#section_id').append('<option value="' + section.id + '">' + section.code + ' - ' + section.name + '</option>');
+                        });
+                        if (oldSection) {
+                            $('#section_id').val(oldSection).trigger('change');
+                            oldSection = null; // Reset after setting
+                        } else {
+                            $('#section_id').trigger('change');
+                        }
+                    }
+                });
+            } else {
+                $('#section_id').empty().append('<option value="">Ninguna</option>').trigger('change');
+                $('#subsection_id').empty().append('<option value="">Ninguna</option>').trigger('change');
+            }
+        });
+
+        $('#section_id').on('change', function() {
+            var sectionId = $(this).val();
+            if (sectionId) {
+                $.ajax({
+                    url: '/api/subsections?section_id=' + sectionId,
+                    type: 'GET',
+                    success: function(data) {
+                        $('#subsection_id').empty().append('<option value="">Ninguna</option>');
+                        $.each(data, function(key, subsection) {
+                            $('#subsection_id').append('<option value="' + subsection.id + '">' + subsection.code + ' - ' + subsection.name + '</option>');
+                        });
+                        if (oldSubsection) {
+                            $('#subsection_id').val(oldSubsection).trigger('change');
+                            oldSubsection = null; // Reset after setting
+                        }
+                    }
+                });
+            } else {
+                $('#subsection_id').empty().append('<option value="">Ninguna</option>').trigger('change');
+            }
+        });
+
+        $('#serie_id').on('change', function() {
+            var serieId = $(this).val();
+            if (serieId) {
+                $.ajax({
+                    url: '/api/subseries?serie_id=' + serieId,
+                    type: 'GET',
+                    success: function(data) {
+                        $('#subserie_id').empty().append('<option value="">Ninguna</option>');
+                        $.each(data, function(key, subserie) {
+                            $('#subserie_id').append('<option value="' + subserie.id + '">' + subserie.code + ' - ' + subserie.name + '</option>');
+                        });
+                        if (oldSubserie) {
+                            $('#subserie_id').val(oldSubserie).trigger('change');
+                            oldSubserie = null; // Reset after setting
+                        }
+                    }
+                });
+            } else {
+                $('#subserie_id').empty().append('<option value="">Ninguna</option>').trigger('change');
+            }
+        });
+
+        // Trigger initial loads if old values exist
+        if (oldStructure) {
+            $('#structure_id').val(oldStructure).trigger('change');
+        }
+        if (oldSerie) {
+            $('#serie_id').val(oldSerie).trigger('change');
+        }
     });
 </script>

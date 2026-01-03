@@ -21,8 +21,7 @@
         </div>
     </x-slot>
 
-    <div class="py-8">
-        <div class="max-w-screen-2xl mx-auto sm:px-6 lg:px-8">
+    <div class="max-w-8xl mx-auto sm:px-6 lg:px-8 py-4">
             <div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
                 <!-- Tabs -->
                 <div class="border-b border-gray-200">
@@ -265,7 +264,7 @@
                             <label for="file" class="block text-sm font-semibold text-gray-700 mb-2">
                                 Archivo <span class="text-red-600">*</span>
                             </label>
-                            <input type="file" id="file" name="file" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 transition-shadow file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            <input accept="application/pdf" type="file" id="file" name="file" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 transition-shadow file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                             @error('file') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
                         </div>
 

@@ -25,7 +25,7 @@ class Expediente extends Model implements AuditableContract
         'number', 'name', 'subject', 'detail', 'parent_id', 'structure_id', 'section_id',
         'subsection_id', 'serie_id', 'subserie_id', 'opening_date',
         'closing_date', 'version', 'status','created_by', 'updated_by','support_type_id',
-        'phase_id',
+        'phase_id', 'responsible_id'
     ];
 
     // Relaciones

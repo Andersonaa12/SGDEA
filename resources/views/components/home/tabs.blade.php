@@ -1,4 +1,4 @@
-<div class="max-w-7xl mx-auto sm:px-6 lg:px-8 py-4">
+<div class="max-w-8xl mx-auto sm:px-6 lg:px-8 py-4">
     <div class="flex items-center justify-start">
         <div x-data="{ tab: 'expedientes' }" class="bg-white p-2 rounded-lg flex gap-1 text-sm" style="width: fit-content;">
             <!-- Expedientes -->
